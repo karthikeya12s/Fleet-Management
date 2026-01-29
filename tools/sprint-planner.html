@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sprint Planning Simulator</title>
+<style>
+:root{--bg:#0f172a;--surface:#1e293b;--surface2:#334155;--border:#475569;--text:#e2e8f0;--text2:#94a3b8;--accent:#3b82f6;--green:#22c55e;--red:#ef4444;--orange:#f59e0b;--purple:#8b5cf6;--radius:10px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between}
+.header h1{font-size:1.3rem;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.toolbar{display:flex;gap:10px;padding:12px 24px;background:var(--surface);border-bottom:1px solid var(--border);align-items:center;flex-wrap:wrap}
+.btn{padding:8px 16px;border-radius:6px;font-size:.82rem;font-weight:600;cursor:pointer;border:none;transition:all .2s}
+.btn-p{background:var(--accent);color:#fff}.btn-p:hover{opacity:.85}
+.btn-o{background:transparent;border:1px solid var(--border);color:var(--text)}.btn-o:hover{background:var(--surface2)}
+.btn-g{background:var(--green);color:#fff}
+.capacity{display:flex;align-items:center;gap:12px;margin-left:auto;font-size:.82rem}
+.capacity label{color:var(--text2)}
+.capacity input{width:60px;padding:5px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:.85rem;text-align:center}
+.container{max-width:1500px;margin:0 auto;padding:20px 24px;display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.column{display:flex;flex-direction:column;gap:12px}
+.col-header{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)}
+.col-header h2{font-size:.9rem;font-weight:600}
+.col-header .badge{padding:3px 10px;border-radius:12px;font-size:.75rem;font-weight:700}
+.backlog .col-header{border-left:3px solid var(--purple)}
+.sprint .col-header{border-left:3px solid var(--green)}
+.story{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;cursor:grab;transition:all .15s;position:relative}
+.story:hover{border-color:var(--accent);transform:translateY(-1px)}
+.story.dragging{opacity:.5}
+.story .top{display:flex;justify-content:space-between;align-items:start;margin-bottom:6px}
+.story .title{font-weight:600;font-size:.88rem;flex:1}
+.story .points{background:var(--accent);color:#fff;padding:2px 8px;border-radius:10px;font-size:.72rem;font-weight:700;flex-shrink:0;margin-left:8px}
+.story .desc{font-size:.78rem;color:var(--text2);margin-bottom:8px}
+.story .meta{display:flex;gap:8px;align-items:center;font-size:.72rem}
+.story .priority{padding:2px 8px;border-radius:10px;font-weight:600;text-transform:uppercase;letter-spacing:.3px}
+.p-high{background:rgba(239,68,68,.2);color:var(--red)}
+.p-med{background:rgba(245,158,11,.2);color:var(--orange)}
+.p-low{background:rgba(59,130,246,.2);color:var(--accent)}
+.story .assignee{color:var(--text2)}
+.story .dep{color:var(--purple);font-style:italic}
+.story .actions{position:absolute;top:8px;right:8px;display:none;gap:4px}
+.story:hover .actions{display:flex}
+.act{width:24px;height:24px;border-radius:4px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;font-size:.7rem;display:flex;align-items:center;justify-content:center}
+.act:hover{color:var(--text);border-color:var(--accent)}
+.act.del:hover{border-color:var(--red);color:var(--red)}
+.velocity-bar{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px}
+.velocity-bar .bar-track{height:24px;background:var(--surface2);border-radius:12px;overflow:hidden;position:relative;margin:8px 0}
+.velocity-bar .bar-fill{height:100%;border-radius:12px;transition:width .3s}
+.velocity-bar .bar-label{display:flex;justify-content:space-between;font-size:.78rem;color:var(--text2)}
+.overcommit{color:var(--red);font-weight:700;font-size:.82rem;margin-top:4px}
+
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:200}
+.modal-bg.show{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;width:480px;max-width:90vw}
+.modal h2{font-size:1rem;margin-bottom:16px;color:var(--accent)}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:.8rem;color:var(--text2);margin-bottom:4px}
+.field input,.field textarea,.field select{width:100%;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:.85rem;outline:none}
+.field textarea{height:60px;resize:vertical}
+.field select{cursor:pointer}
+.row-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}
+.export-area{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-top:20px;display:none}
+.export-area textarea{width:100%;height:200px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:monospace;font-size:.78rem;padding:12px}
+@media(max-width:900px){.container{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Sprint Planning Simulator</h1>
+  <span style="font-size:.75rem;color:var(--text2)">Exercise 6.1 &mdash; FleetPulse MVP Sprint Planning</span>
+</div>
+<div class="toolbar">
+  <button class="btn btn-p" onclick="showModal()">+ Add Story</button>
+  <button class="btn btn-o" onclick="loadDefaults()">Load Fleet MVP Stories</button>
+  <button class="btn btn-o" onclick="toggleExport()">Export Sprint Plan</button>
+  <button class="btn btn-o" onclick="saveState()">Save</button>
+  <div class="capacity">
+    <label>Sprint Capacity:</label>
+    <input type="number" id="capacity" value="40" min="10" max="200" onchange="render()"> <span style="color:var(--text2)">story points</span>
+    <span style="color:var(--border)">|</span>
+    <label>Sprint #:</label>
+    <input type="number" id="sprintNum" value="3" min="1" max="50" style="width:45px" onchange="render()">
+  </div>
+</div>
+<div class="container">
+  <div class="column backlog">
+    <div class="col-header"><h2>Product Backlog</h2><div class="badge" style="background:var(--purple);color:#fff" id="backlogCount">0</div></div>
+    <div id="backlogList" class="story-list"></div>
+  </div>
+  <div class="column sprint">
+    <div class="col-header"><h2>Sprint <span id="sprintLabel">3</span> Backlog</h2><div class="badge" style="background:var(--green);color:#fff" id="sprintCount">0</div></div>
+    <div class="velocity-bar" id="velocityBar"></div>
+    <div id="sprintList" class="story-list"></div>
+  </div>
+</div>
+<div style="max-width:1500px;margin:0 auto;padding:0 24px"><div class="export-area" id="exportArea"><textarea id="exportText" readonly></textarea></div></div>
+
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <h2 id="modalTitle">Add User Story</h2>
+    <div class="field"><label>Title</label><input id="mTitle" placeholder="As a fleet manager, I want to..."></div>
+    <div class="field"><label>Description / Acceptance Criteria</label><textarea id="mDesc" placeholder="Acceptance criteria..."></textarea></div>
+    <div class="row-2">
+      <div class="field"><label>Story Points</label>
+        <select id="mPoints"><option>1</option><option>2</option><option>3</option><option selected>5</option><option>8</option><option>13</option><option>21</option></select>
+      </div>
+      <div class="field"><label>Priority</label>
+        <select id="mPriority"><option value="high">High</option><option value="med" selected>Medium</option><option value="low">Low</option></select>
+      </div>
+    </div>
+    <div class="row-2">
+      <div class="field"><label>Assignee</label>
+        <select id="mAssignee"><option value="">Unassigned</option><option>Backend Dev 1</option><option>Backend Dev 2</option><option>Frontend Dev</option><option>Mobile Dev</option><option>QA</option></select>
+      </div>
+      <div class="field"><label>Depends On (Story #)</label><input id="mDep" placeholder="e.g., 1, 3" type="text"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-o" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-p" id="modalSaveBtn" onclick="saveStory()">Add Story</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let stories=[];let nextId=1;let editId=null;
+const $=id=>document.getElementById(id);
+
+const defaultStories=[
+  {title:'Setup GPS data ingestion API',desc:'REST endpoint accepting batch location data from GPS providers. Handle auth, validation, dedup.',points:8,priority:'high',assignee:'Backend Dev 1',dep:'',inSprint:true},
+  {title:'Implement real-time map rendering',desc:'Display vehicles on Mapbox map with 30-sec position updates via WebSocket. Show status indicators.',points:8,priority:'high',assignee:'Frontend Dev',dep:'1',inSprint:true},
+  {title:'Build vehicle CRUD API enhancements',desc:'Add mileage tracking, status field, GPS device association to vehicle model.',points:3,priority:'high',assignee:'Backend Dev 2',dep:'',inSprint:true},
+  {title:'Create maintenance schedule data model',desc:'DB schema for maintenance templates, triggers (mileage/time), work orders. Seed with common PM schedules.',points:5,priority:'high',assignee:'Backend Dev 2',dep:'',inSprint:true},
+  {title:'Build maintenance schedule UI',desc:'Calendar view of upcoming maintenance. Create/edit schedules. Overdue items in red.',points:8,priority:'high',assignee:'Frontend Dev',dep:'4',inSprint:true},
+  {title:'Implement notification service',desc:'Email + push notification framework. Support maintenance alerts, compliance deadlines.',points:5,priority:'med',assignee:'Backend Dev 1',dep:'',inSprint:true},
+  {title:'Driver mobile app: DVIR form',desc:'Digital vehicle inspection checklist on mobile. Photo capture. Submit to backend.',points:8,priority:'med',assignee:'Mobile Dev',dep:'',inSprint:false},
+  {title:'Driver mobile app: fuel logging with OCR',desc:'Photo receipt capture, OCR extraction of gallons/cost/station, driver confirms.',points:13,priority:'med',assignee:'Mobile Dev',dep:'',inSprint:false},
+  {title:'QA: GPS tracking E2E test suite',desc:'Automated tests for location ingestion, map display, geofence alerts.',points:5,priority:'med',assignee:'QA',dep:'1, 2',inSprint:false},
+  {title:'QA: Maintenance workflow test suite',desc:'Test schedule creation, alerts, work order lifecycle.',points:3,priority:'med',assignee:'QA',dep:'4, 5',inSprint:false},
+  {title:'Geofence creation and alerts',desc:'Draw polygon geofences on map. Alert on vehicle enter/exit. Configurable per vehicle.',points:8,priority:'low',assignee:'',dep:'2',inSprint:false},
+  {title:'Fleet dashboard overview page',desc:'KPI cards: active vehicles, overdue maintenance, cost summary, recent alerts.',points:5,priority:'low',assignee:'',dep:'2, 5',inSprint:false},
+  {title:'Fuel card integration (WEX API)',desc:'Pull fuel transactions from WEX API. Auto-match to vehicles. Flag anomalies.',points:8,priority:'low',assignee:'',dep:'',inSprint:false},
+  {title:'Work order management UI',desc:'Create, assign, track work orders. Link to maintenance schedule. Cost logging.',points:5,priority:'low',assignee:'',dep:'4',inSprint:false},
+  {title:'Basic reporting: maintenance costs',desc:'Report showing maintenance spend per vehicle, category, time period. CSV export.',points:5,priority:'low',assignee:'',dep:'4',inSprint:false}
+];
+
+function loadDefaults(){
+  if(stories.length>0&&!confirm('Replace current stories with defaults?'))return;
+  stories=[];nextId=1;
+  defaultStories.forEach(s=>{stories.push({id:nextId++,...s})});
+  render();
+}
+
+function render(){
+  $('sprintLabel').textContent=$('sprintNum').value;
+  const cap=+$('capacity').value;
+  const backlog=stories.filter(s=>!s.inSprint);
+  const sprint=stories.filter(s=>s.inSprint);
+  const sprintPts=sprint.reduce((a,s)=>a+s.points,0);
+  const pct=Math.min(100,(sprintPts/cap)*100);
+  const over=sprintPts>cap;
+
+  $('backlogCount').textContent=backlog.length+' stories';
+  $('sprintCount').textContent=sprint.length+' stories / '+sprintPts+' pts';
+
+  $('velocityBar').innerHTML=`
+    <div class="bar-label"><span>Committed: ${sprintPts} pts</span><span>Capacity: ${cap} pts</span></div>
+    <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${over?'var(--red)':pct>85?'var(--orange)':'var(--green)'}"></div></div>
+    ${over?'<div class="overcommit">Over-committed by '+(sprintPts-cap)+' points! Remove stories or increase capacity.</div>':''}
+  `;
+
+  $('backlogList').innerHTML=backlog.map(s=>renderStory(s,false)).join('');
+  $('sprintList').innerHTML=sprint.map(s=>renderStory(s,true)).join('');
+
+  // Drag events
+  document.querySelectorAll('.story[draggable]').forEach(el=>{
+    el.addEventListener('dragstart',e=>{e.dataTransfer.setData('text/plain',el.dataset.id);el.classList.add('dragging')});
+    el.addEventListener('dragend',e=>{el.classList.remove('dragging')});
+  });
+  [$('backlogList'),$('sprintList')].forEach(list=>{
+    list.addEventListener('dragover',e=>{e.preventDefault()});
+    list.addEventListener('drop',e=>{
+      e.preventDefault();
+      const id=+e.dataTransfer.getData('text/plain');
+      const story=stories.find(s=>s.id===id);
+      if(story)story.inSprint=list.id==='sprintList';
+      render();
+    });
+  });
+}
+
+function renderStory(s,inSprint){
+  const pc=s.priority==='high'?'p-high':s.priority==='med'?'p-med':'p-low';
+  return`<div class="story" draggable="true" data-id="${s.id}">
+    <div class="actions">
+      <button class="act" onclick="editStory(${s.id})" title="Edit">&#9998;</button>
+      <button class="act" onclick="moveStory(${s.id})" title="${inSprint?'Move to Backlog':'Move to Sprint'}">${inSprint?'&#8592;':'&#8594;'}</button>
+      <button class="act del" onclick="delStory(${s.id})" title="Delete">&#10005;</button>
+    </div>
+    <div class="top"><span class="title">#${s.id}: ${s.title}</span><span class="points">${s.points} pts</span></div>
+    <div class="desc">${s.desc}</div>
+    <div class="meta">
+      <span class="priority ${pc}">${s.priority}</span>
+      ${s.assignee?'<span class="assignee">'+s.assignee+'</span>':'<span class="assignee" style="color:var(--orange)">Unassigned</span>'}
+      ${s.dep?'<span class="dep">Depends on: #'+s.dep+'</span>':''}
+    </div>
+  </div>`;
+}
+
+function showModal(id){
+  editId=id||null;
+  $('modalTitle').textContent=editId?'Edit Story':'Add User Story';
+  $('modalSaveBtn').textContent=editId?'Save':'Add Story';
+  if(editId){
+    const s=stories.find(x=>x.id===editId);
+    $('mTitle').value=s.title;$('mDesc').value=s.desc;$('mPoints').value=s.points;
+    $('mPriority').value=s.priority;$('mAssignee').value=s.assignee||'';$('mDep').value=s.dep||'';
+  }else{
+    $('mTitle').value='';$('mDesc').value='';$('mPoints').value='5';$('mPriority').value='med';$('mAssignee').value='';$('mDep').value='';
+  }
+  $('modal').classList.add('show');
+}
+function closeModal(){$('modal').classList.remove('show')}
+function editStory(id){showModal(id)}
+function saveStory(){
+  const data={title:$('mTitle').value,desc:$('mDesc').value,points:+$('mPoints').value,priority:$('mPriority').value,assignee:$('mAssignee').value,dep:$('mDep').value};
+  if(!data.title)return;
+  if(editId){Object.assign(stories.find(s=>s.id===editId),data)}
+  else{stories.push({id:nextId++,...data,inSprint:false})}
+  closeModal();render();
+}
+function delStory(id){if(confirm('Delete this story?')){stories=stories.filter(s=>s.id!==id);render()}}
+function moveStory(id){const s=stories.find(x=>x.id===id);if(s){s.inSprint=!s.inSprint;render()}}
+
+function toggleExport(){
+  const box=$('exportArea');box.style.display=box.style.display==='none'?'block':'none';
+  const sprint=stories.filter(s=>s.inSprint);const backlog=stories.filter(s=>!s.inSprint);
+  const cap=+$('capacity').value;const pts=sprint.reduce((a,s)=>a+s.points,0);
+  let md=`# Sprint ${$('sprintNum').value} Plan\n\n`;
+  md+=`**Capacity:** ${cap} pts | **Committed:** ${pts} pts | **Utilization:** ${Math.round(pts/cap*100)}%\n\n`;
+  md+=`## Sprint Backlog (${sprint.length} stories)\n\n`;
+  md+='| # | Story | Points | Priority | Assignee | Dependencies |\n|---|-------|--------|----------|----------|-------------|\n';
+  sprint.forEach(s=>{md+=`| ${s.id} | ${s.title} | ${s.points} | ${s.priority} | ${s.assignee||'TBD'} | ${s.dep||'-'} |\n`});
+  md+=`\n## Product Backlog (${backlog.length} stories)\n\n`;
+  md+='| # | Story | Points | Priority |\n|---|-------|--------|----------|\n';
+  backlog.forEach(s=>{md+=`| ${s.id} | ${s.title} | ${s.points} | ${s.priority} |\n`});
+  $('exportText').value=md;
+}
+
+function saveState(){localStorage.setItem('sprint-stories',JSON.stringify({stories,nextId}));alert('Saved!')}
+function loadState(){const d=localStorage.getItem('sprint-stories');if(d){const p=JSON.parse(d);stories=p.stories;nextId=p.nextId}}
+
+loadState();
+if(stories.length===0)loadDefaults();
+else render();
+</script>
+</body>
+</html>

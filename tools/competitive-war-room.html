@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Competitive War Room Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#0f172a;--surface:#1e293b;--surface2:#334155;--border:#475569;--text:#e2e8f0;--text2:#94a3b8;--accent:#f59e0b;--blue:#3b82f6;--green:#22c55e;--red:#ef4444;--purple:#8b5cf6;--pink:#ec4899;--radius:10px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between}
+.header h1{font-size:1.3rem;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--red));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.container{max-width:1500px;margin:0 auto;padding:20px 24px;display:flex;flex-direction:column;gap:20px}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.panel h2{font-size:.95rem;font-weight:600;margin-bottom:14px;color:var(--accent)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px}
+
+/* Feature Matrix */
+.matrix{width:100%;border-collapse:collapse;font-size:.8rem}
+.matrix th{background:var(--surface2);padding:10px 12px;text-align:left;color:var(--text2);font-weight:600;font-size:.75rem;text-transform:uppercase;letter-spacing:.3px;position:sticky;top:0}
+.matrix td{padding:8px 12px;border-top:1px solid var(--border)}
+.matrix tr:hover td{background:var(--surface2)}
+.matrix .feat{font-weight:600;color:var(--text);min-width:180px}
+.check{color:var(--green);font-weight:700}.cross{color:var(--red);font-weight:700}.partial{color:var(--accent);font-weight:700}
+.matrix .editable{cursor:pointer;border-bottom:1px dashed var(--border)}
+.matrix .editable:hover{color:var(--accent)}
+
+/* Radar */
+.chart-wrap{position:relative;height:350px}
+
+/* SWOT */
+.swot-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px;border-radius:8px;overflow:hidden}
+.swot-box{padding:14px;font-size:.8rem;min-height:100px}
+.swot-box h4{font-size:.75rem;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.swot-s{background:rgba(34,197,94,.1)}.swot-s h4{color:var(--green)}
+.swot-w{background:rgba(239,68,68,.1)}.swot-w h4{color:var(--red)}
+.swot-o{background:rgba(59,130,246,.1)}.swot-o h4{color:var(--blue)}
+.swot-t{background:rgba(245,158,11,.1)}.swot-t h4{color:var(--accent)}
+.swot-box ul{list-style:none;padding:0}.swot-box li{padding:3px 0;font-size:.78rem;color:var(--text2)}
+.swot-box li::before{content:'- '}
+
+/* Tabs */
+.comp-tabs{display:flex;gap:4px;margin-bottom:16px}
+.comp-tab{padding:8px 16px;border-radius:6px;font-size:.82rem;font-weight:600;cursor:pointer;border:none;background:var(--surface2);color:var(--text2);transition:all .2s}
+.comp-tab.active{color:#fff}
+
+/* Positioning Map */
+.pos-map{position:relative;width:100%;height:400px;background:var(--surface2);border-radius:8px;overflow:hidden}
+.pos-map .axis-x,.pos-map .axis-y{position:absolute;background:var(--border)}
+.pos-map .axis-x{left:0;right:0;top:50%;height:1px}
+.pos-map .axis-y{top:0;bottom:0;left:50%;width:1px}
+.pos-map .label-x{position:absolute;font-size:.7rem;color:var(--text2)}
+.pos-map .label-y{position:absolute;font-size:.7rem;color:var(--text2)}
+.pos-dot{position:absolute;width:80px;padding:6px 10px;border-radius:20px;font-size:.72rem;font-weight:700;text-align:center;transform:translate(-50%,-50%);cursor:move;user-select:none;z-index:10}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Competitive War Room Dashboard</h1>
+  <span style="font-size:.75rem;color:var(--text2)">Exercise 1.2 &mdash; SaaS &bull; Exercise 5.3 &mdash; HW+SW</span>
+</div>
+<div class="container">
+
+  <div class="panel">
+    <h2>Feature Comparison Matrix</h2>
+    <div style="overflow-x:auto">
+    <table class="matrix" id="matrix"></table>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="panel">
+      <h2>Capability Radar</h2>
+      <div class="chart-wrap"><canvas id="radarChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <h2>Positioning Map</h2>
+      <div style="font-size:.72rem;color:var(--text2);margin-bottom:8px">Drag companies to reposition. X: Price &rarr; Premium. Y: SMB &rarr; Enterprise.</div>
+      <div class="pos-map" id="posMap">
+        <div class="axis-x"></div><div class="axis-y"></div>
+        <div class="label-x" style="left:8px;top:calc(50% + 8px)">Low Price</div>
+        <div class="label-x" style="right:8px;top:calc(50% + 8px)">Premium</div>
+        <div class="label-y" style="left:calc(50% + 8px);top:8px">Enterprise</div>
+        <div class="label-y" style="left:calc(50% + 8px);bottom:8px">SMB</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>SWOT Analysis</h2>
+    <div class="comp-tabs" id="swotTabs"></div>
+    <div class="swot-grid" id="swotGrid"></div>
+  </div>
+</div>
+
+<script>
+const competitors=[
+  {name:'Your Product',color:'#22c55e',short:'YOU',pos:{x:35,y:65},
+    scores:{tracking:8,maintenance:9,compliance:8,safety:6,fuel:7,analytics:7,mobile:9,ease:9,price:9,integration:6},
+    swot:{s:['All-in-one platform for SMBs','No hardware requirement','Month-to-month pricing','Fast setup (<1 hour)'],w:['New entrant, no brand recognition','Smaller feature set than enterprise','No proprietary hardware data','Limited integrations at launch'],o:['85% of SMB fleets have no software','Fleetio lacks native GPS tracking','Enterprise players overpriced for SMB','Growing compliance requirements'],t:['Samsara/Geotab could launch SMB tier','Low switching costs in SaaS','Fleet consolidation reducing SMB count','Price pressure from free/cheap tools']}},
+  {name:'Samsara',color:'#3b82f6',short:'SAM',pos:{x:72,y:25},
+    scores:{tracking:10,maintenance:6,compliance:9,safety:10,fuel:8,analytics:9,mobile:8,ease:6,price:4,integration:8},
+    swot:{s:['Market leader, strong brand','AI-powered video safety','Complete IoT platform','Strong enterprise sales motion'],w:['Expensive ($30-45/veh/mo)','Requires proprietary hardware','3-5 year contracts','Complex setup'],o:['Expanding into new verticals','International growth','Connected operations beyond fleet','AI/ML capabilities'],t:['Hardware commoditization','Pure SaaS competitors','Economic downturn reducing fleet budgets','Open-source telematics']}},
+  {name:'Geotab',color:'#8b5cf6',short:'GEO',pos:{x:65,y:20},
+    scores:{tracking:10,maintenance:7,compliance:7,safety:7,fuel:7,analytics:8,mobile:5,ease:5,price:5,integration:10},
+    swot:{s:['Largest telematics provider globally','Open platform / marketplace','Extensive OEM integrations','Strong data analytics capabilities'],w:['Dated UI/UX','Relies on partner ecosystem for features','Weak mobile experience','Complex pricing'],o:['Government fleet contracts','EV fleet management','Data monetization at scale','OEM embedded telematics'],t:['Samsara taking market share','Direct-from-OEM telematics','Customer fatigue with marketplace model','Increasing competition in mid-market']}},
+  {name:'Fleetio',color:'#ec4899',short:'FLT',pos:{x:25,y:55},
+    scores:{tracking:4,maintenance:10,compliance:6,safety:3,fuel:5,analytics:6,mobile:8,ease:9,price:8,integration:7},
+    swot:{s:['Best maintenance management UX','Free tier drives adoption','Modern, clean interface','Strong API and integrations'],w:['No native GPS tracking','Limited safety/compliance features','Dependent on third-party telematics','Small sales team'],o:['Expand into tracking and compliance','Upsell to mid-market','International expansion','Acquisition target for larger player'],t:['Competitors adding maintenance features','GPS providers adding maintenance','Price competition from free tools','Customer expectations growing']}},
+  {name:'Motive',color:'#f59e0b',short:'MOT',pos:{x:60,y:35},
+    scores:{tracking:8,maintenance:5,compliance:10,safety:9,fuel:7,analytics:7,mobile:7,ease:6,price:5,integration:6},
+    swot:{s:['#1 ELD/compliance platform','AI dashcam technology','Strong mid-market presence','Integrated ELD + camera'],w:['Less comprehensive fleet management','Maintenance features are basic','Complex pricing structure','Requires hardware purchase'],o:['Expand fleet management features','Move upmarket to enterprise','AI/automation opportunities','Workflow automation'],t:['Samsara feature parity','Commoditization of ELD','FMCSA regulation changes','Price competition from new entrants']}}
+];
+
+const features=[
+  {name:'Real-Time GPS Tracking',key:'tracking'},
+  {name:'Maintenance Management',key:'maintenance'},
+  {name:'ELD/HOS Compliance',key:'compliance'},
+  {name:'AI Dashcam / Safety',key:'safety'},
+  {name:'Fuel Management',key:'fuel'},
+  {name:'Advanced Analytics',key:'analytics'},
+  {name:'Mobile App Quality',key:'mobile'},
+  {name:'Ease of Setup',key:'ease'},
+  {name:'Price Competitiveness',key:'price'},
+  {name:'Third-Party Integrations',key:'integration'}
+];
+
+const featureMatrix=[
+  {name:'Real-Time GPS Tracking',vals:['Yes (BYOD)','Yes (HW)','Yes (HW)','Via integration','Yes (HW)']},
+  {name:'Maintenance Scheduling',vals:['Yes','Basic','Via marketplace','Yes (core)','Basic']},
+  {name:'ELD/HOS Compliance',vals:['Via partner','Yes','Via partner','Basic','Yes (core)']},
+  {name:'AI Dashcam',vals:['No','Yes (core)','No (partners)','No','Yes']},
+  {name:'Driver Scoring',vals:['Yes','Yes','Yes','No','Yes']},
+  {name:'Fuel Card Integration',vals:['Yes','Yes','Yes','Via integration','Yes']},
+  {name:'Route Optimization',vals:['P2','Basic','Via marketplace','No','No']},
+  {name:'Predictive Maintenance',vals:['P2','No','Via marketplace','No','No']},
+  {name:'Hardware Required',vals:['No','Yes','Yes','No','Yes']},
+  {name:'Free Trial/Tier',vals:['14-day trial','Demo only','Demo only','Free tier','Demo only']},
+  {name:'Contract Length',vals:['Monthly','3-5 years','3-5 years','Monthly','3 years']},
+  {name:'Starting Price ($/veh/mo)',vals:['$12','$30+','$25+','$5','$25+']},
+  {name:'Self-Serve Signup',vals:['Yes','No','No','Yes','No']},
+  {name:'Setup Time',vals:['<1 hour','Days-weeks','Days-weeks','<1 hour','Days-weeks']}
+];
+
+// Render feature matrix
+function renderMatrix(){
+  const names=competitors.map(c=>c.name);
+  let html='<thead><tr><th>Feature</th>'+names.map(n=>`<th>${n}</th>`).join('')+'</tr></thead><tbody>';
+  featureMatrix.forEach(f=>{
+    html+='<tr><td class="feat">'+f.name+'</td>';
+    f.vals.forEach(v=>{
+      let cls='';
+      if(v==='Yes'||v==='Yes (core)'||v==='Yes (HW)'||v==='Yes (BYOD)')cls='check';
+      else if(v==='No')cls='cross';
+      else if(v.startsWith('P2')||v.startsWith('Via')||v==='Basic')cls='partial';
+      html+=`<td class="${cls}">${v}</td>`;
+    });
+    html+='</tr>';
+  });
+  html+='</tbody>';
+  document.getElementById('matrix').innerHTML=html;
+}
+
+// Radar chart
+let radarChart;
+function renderRadar(){
+  if(radarChart)radarChart.destroy();
+  radarChart=new Chart(document.getElementById('radarChart'),{type:'radar',data:{
+    labels:features.map(f=>f.name),
+    datasets:competitors.map(c=>({label:c.name,data:features.map(f=>c.scores[f.key]),borderColor:c.color,backgroundColor:c.color+'22',pointBackgroundColor:c.color,borderWidth:2}))
+  },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8',font:{size:11}}}},scales:{r:{grid:{color:'#334155'},pointLabels:{color:'#94a3b8',font:{size:10}},ticks:{display:false},suggestedMin:0,suggestedMax:10}}}});
+}
+
+// Positioning map
+function renderPositionMap(){
+  const map=document.getElementById('posMap');
+  map.querySelectorAll('.pos-dot').forEach(d=>d.remove());
+  competitors.forEach(c=>{
+    const dot=document.createElement('div');
+    dot.className='pos-dot';
+    dot.style.background=c.color;
+    dot.style.color='#fff';
+    dot.style.left=c.pos.x+'%';
+    dot.style.top=c.pos.y+'%';
+    dot.textContent=c.short;
+    dot.title=c.name;
+    // Drag
+    let dragging=false,startX,startY,startLeft,startTop;
+    dot.addEventListener('mousedown',e=>{dragging=true;startX=e.clientX;startY=e.clientY;const r=map.getBoundingClientRect();startLeft=parseFloat(dot.style.left);startTop=parseFloat(dot.style.top);e.preventDefault()});
+    document.addEventListener('mousemove',e=>{if(!dragging)return;const r=map.getBoundingClientRect();const dx=(e.clientX-startX)/r.width*100;const dy=(e.clientY-startY)/r.height*100;dot.style.left=Math.max(5,Math.min(95,startLeft+dx))+'%';dot.style.top=Math.max(5,Math.min(95,startTop+dy))+'%'});
+    document.addEventListener('mouseup',()=>{dragging=false});
+    map.appendChild(dot);
+  });
+}
+
+// SWOT
+let currentSwot=0;
+function renderSwotTabs(){
+  document.getElementById('swotTabs').innerHTML=competitors.map((c,i)=>
+    `<button class="comp-tab${i===currentSwot?' active':''}" style="${i===currentSwot?'background:'+c.color:''}" onclick="currentSwot=${i};renderSwot()">${c.name}</button>`
+  ).join('');
+}
+function renderSwot(){
+  renderSwotTabs();
+  const c=competitors[currentSwot];
+  document.getElementById('swotGrid').innerHTML=`
+    <div class="swot-box swot-s"><h4>Strengths</h4><ul>${c.swot.s.map(s=>`<li>${s}</li>`).join('')}</ul></div>
+    <div class="swot-box swot-w"><h4>Weaknesses</h4><ul>${c.swot.w.map(s=>`<li>${s}</li>`).join('')}</ul></div>
+    <div class="swot-box swot-o"><h4>Opportunities</h4><ul>${c.swot.o.map(s=>`<li>${s}</li>`).join('')}</ul></div>
+    <div class="swot-box swot-t"><h4>Threats</h4><ul>${c.swot.t.map(s=>`<li>${s}</li>`).join('')}</ul></div>
+  `;
+}
+
+renderMatrix();renderRadar();renderPositionMap();renderSwot();
+</script>
+</body>
+</html>

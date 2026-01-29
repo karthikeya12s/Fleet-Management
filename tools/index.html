@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fleet Management PM Tools</title>
+<style>
+:root{--bg:#0f172a;--surface:#1e293b;--surface2:#334155;--border:#475569;--text:#e2e8f0;--text2:#94a3b8;--accent:#3b82f6;--green:#22c55e;--purple:#8b5cf6;--pink:#ec4899;--orange:#f59e0b;--red:#ef4444;--radius:12px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:24px 32px;text-align:center}
+.header h1{font-size:1.6rem;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--purple),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header p{color:var(--text2);font-size:.85rem;margin-top:6px}
+.container{max-width:1100px;margin:0 auto;padding:32px 24px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;text-decoration:none;color:var(--text);transition:transform .2s,border-color .2s,box-shadow .2s;display:flex;flex-direction:column;gap:10px}
+.card:hover{transform:translateY(-4px);border-color:var(--accent);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.card .icon{font-size:1.8rem;width:48px;height:48px;border-radius:10px;display:flex;align-items:center;justify-content:center}
+.card h2{font-size:1rem;font-weight:700}
+.card p{font-size:.82rem;color:var(--text2);line-height:1.5}
+.card .tag{font-size:.68rem;color:var(--text2);background:var(--surface2);padding:3px 8px;border-radius:4px;align-self:flex-start;margin-top:auto}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Fleet Management PM Toolkit</h1>
+  <p>Interactive tools for hands-on product management practice</p>
+</div>
+<div class="container">
+  <div class="grid">
+    <a class="card" href="fleet-tco-calculator.html">
+      <div class="icon" style="background:rgba(34,197,94,.15);color:var(--green)">$</div>
+      <h2>Fleet TCO Calculator & ROI Analyzer</h2>
+      <p>Calculate total cost of ownership per vehicle and per mile. Model SaaS subscription ROI with payback period and savings projections.</p>
+      <span class="tag">Exercises 1.4, 1.3</span>
+    </a>
+    <a class="card" href="unit-economics-simulator.html">
+      <div class="icon" style="background:rgba(59,130,246,.15);color:var(--accent)">&pi;</div>
+      <h2>Unit Economics Simulator</h2>
+      <p>Toggle between 5 business models. Adjust ARPU, churn, CAC, and growth to see LTV, margins, and 3-year ARR projections in real time.</p>
+      <span class="tag">Phase 1 across all models</span>
+    </a>
+    <a class="card" href="rice-prioritization.html">
+      <div class="icon" style="background:rgba(245,158,11,.15);color:var(--orange)">#</div>
+      <h2>RICE Prioritization Board</h2>
+      <p>Score features on Reach, Impact, Confidence, and Effort. Auto-sort by RICE score, edit inline, and export your prioritized backlog.</p>
+      <span class="tag">Exercise 3.3 (SaaS)</span>
+    </a>
+    <a class="card" href="marketplace-simulator.html">
+      <div class="icon" style="background:rgba(236,72,153,.15);color:var(--pink)">&harr;</div>
+      <h2>Marketplace Economics Simulator</h2>
+      <p>Model supply and demand dynamics, take rates, GMV, fill rates, and liquidity. Simulate geographic expansion across metros.</p>
+      <span class="tag">Exercise 1.1 (Marketplace)</span>
+    </a>
+    <a class="card" href="vehicle-replacement-analyzer.html">
+      <div class="icon" style="background:rgba(139,92,246,.15);color:var(--purple)">&oplus;</div>
+      <h2>Vehicle Replacement Analyzer</h2>
+      <p>Find the optimal replacement point by modeling TCO per mile over a vehicle's lifetime. Compare light, medium, and heavy use scenarios.</p>
+      <span class="tag">Exercise 3.3 (Managed Services)</span>
+    </a>
+    <a class="card" href="competitive-war-room.html">
+      <div class="icon" style="background:rgba(239,68,68,.15);color:var(--red)">&target;</div>
+      <h2>Competitive War Room</h2>
+      <p>Feature matrix, capability radar, SWOT analysis, and positioning map for Samsara, Geotab, Fleetio, Motive, and your product.</p>
+      <span class="tag">Exercise 1.2 (SaaS), 5.3 (HW+SW)</span>
+    </a>
+    <a class="card" href="sprint-planner.html">
+      <div class="icon" style="background:rgba(59,130,246,.15);color:var(--accent)">&equiv;</div>
+      <h2>Sprint Planning Simulator</h2>
+      <p>Drag user stories into sprints, track velocity, manage dependencies, and export sprint plans. Pre-loaded with FleetPulse MVP stories.</p>
+      <span class="tag">Exercise 6.1 (SaaS)</span>
+    </a>
+  </div>
+</div>
+</body>
+</html>

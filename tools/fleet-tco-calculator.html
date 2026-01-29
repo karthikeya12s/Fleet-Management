@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fleet TCO Calculator & ROI Analyzer</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#0f172a;--surface:#1e293b;--surface2:#334155;--border:#475569;--text:#e2e8f0;--text2:#94a3b8;--accent:#3b82f6;--accent2:#8b5cf6;--green:#22c55e;--red:#ef4444;--orange:#f59e0b;--radius:10px;--shadow:0 4px 24px rgba(0,0,0,.3)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh}
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.header h1{font-size:1.3rem;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header .badge{font-size:.7rem;background:var(--accent);color:#fff;padding:3px 10px;border-radius:20px}
+.container{max-width:1400px;margin:0 auto;padding:24px;display:grid;grid-template-columns:380px 1fr;gap:24px}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
+.panel h2{font-size:1rem;font-weight:600;margin-bottom:16px;color:var(--accent);display:flex;align-items:center;gap:8px}
+.panel h2::before{content:'';width:4px;height:18px;background:var(--accent);border-radius:2px}
+.section{margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+.section:last-child{border-bottom:none;margin-bottom:0}
+.section h3{font-size:.85rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:.8rem;color:var(--text2);margin-bottom:4px}
+.field input,.field select{width:100%;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:.9rem;outline:none;transition:border .2s}
+.field input:focus,.field select:focus{border-color:var(--accent)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.results{display:grid;gap:16px}
+.metric-card{background:var(--surface2);border-radius:8px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center}
+.metric-card .label{font-size:.8rem;color:var(--text2)}
+.metric-card .value{font-size:1.3rem;font-weight:700}
+.metric-card .value.green{color:var(--green)}
+.metric-card .value.red{color:var(--red)}
+.metric-card .value.blue{color:var(--accent)}
+.metric-card .value.orange{color:var(--orange)}
+.chart-container{position:relative;height:280px;margin-top:12px}
+.right-col{display:grid;gap:24px;align-content:start}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center;box-shadow:var(--shadow)}
+.kpi .num{font-size:1.5rem;font-weight:800;margin:4px 0}
+.kpi .lbl{font-size:.75rem;color:var(--text2)}
+.btn{padding:10px 20px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:.85rem;font-weight:600;cursor:pointer;transition:opacity .2s}
+.btn:hover{opacity:.85}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}
+.roi-section{background:linear-gradient(135deg,rgba(59,130,246,.1),rgba(139,92,246,.1));border:1px solid rgba(59,130,246,.3)}
+.tooltip{font-size:.7rem;color:var(--text2);margin-top:2px}
+@media(max-width:900px){.container{grid-template-columns:1fr}.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Fleet TCO Calculator & ROI Analyzer</h1>
+  <span class="badge">Exercise 1.4 &mdash; SaaS Model</span>
+</div>
+<div class="container">
+  <div class="panel" id="inputs">
+    <h2>Fleet Parameters</h2>
+    <div class="section">
+      <h3>Fleet Profile</h3>
+      <div class="field"><label>Fleet Size (vehicles)</label><input type="number" id="fleetSize" value="75" min="1" max="10000"></div>
+      <div class="field"><label>Vehicle Type</label>
+        <select id="vehicleType">
+          <option value="van">Cargo Van (Ford Transit / RAM ProMaster)</option>
+          <option value="pickup">Pickup Truck (F-150 / Silverado)</option>
+          <option value="box">Box Truck (Class 4-5)</option>
+          <option value="semi" >Semi Truck (Class 8)</option>
+        </select>
+      </div>
+      <div class="row">
+        <div class="field"><label>Avg Annual Miles / Vehicle</label><input type="number" id="annualMiles" value="25000" step="1000"></div>
+        <div class="field"><label>Avg Vehicle Age (years)</label><input type="number" id="vehicleAge" value="3" min="0" max="20"></div>
+      </div>
+    </div>
+    <div class="section">
+      <h3>Cost Inputs (per vehicle / year)</h3>
+      <div class="row">
+        <div class="field"><label>Fuel Cost ($/gal)</label><input type="number" id="fuelCost" value="3.80" step="0.10"></div>
+        <div class="field"><label>Fuel Efficiency (MPG)</label><input type="number" id="mpg" value="18" step="1"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>Preventive Maint ($/yr)</label><input type="number" id="pmCost" value="1800" step="100"></div>
+        <div class="field"><label>Unplanned Repairs ($/yr)</label><input type="number" id="repairCost" value="2200" step="100"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>Insurance ($/yr)</label><input type="number" id="insurance" value="3200" step="100"></div>
+        <div class="field"><label>Depreciation ($/yr)</label><input type="number" id="depreciation" value="5500" step="100"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>Registration & Compliance ($/yr)</label><input type="number" id="compliance" value="450" step="50"></div>
+        <div class="field"><label>Tolls & Violations ($/yr)</label><input type="number" id="tolls" value="600" step="50"></div>
+      </div>
+      <div class="field"><label>Admin Overhead ($/vehicle/yr)</label><input type="number" id="admin" value="1200" step="100">
+        <div class="tooltip">Fleet manager time, invoice processing, vendor coordination</div>
+      </div>
+    </div>
+    <div class="section">
+      <h3>SaaS Platform (ROI Analysis)</h3>
+      <div class="row">
+        <div class="field"><label>Subscription ($/vehicle/mo)</label><input type="number" id="saasPrice" value="22" step="1"></div>
+        <div class="field"><label>Implementation Cost ($)</label><input type="number" id="implCost" value="2000" step="500"></div>
+      </div>
+      <div class="field"><label>Expected Fuel Savings (%)</label><input type="range" id="fuelSavings" min="0" max="25" value="10"><span id="fuelSavingsVal">10%</span></div>
+      <div class="field"><label>Expected Maintenance Savings (%)</label><input type="range" id="maintSavings" min="0" max="35" value="18"><span id="maintSavingsVal">18%</span></div>
+      <div class="field"><label>Expected Admin Time Savings (%)</label><input type="range" id="adminSavings" min="0" max="80" value="50"><span id="adminSavingsVal">50%</span></div>
+      <div class="field"><label>Compliance Fine Avoidance ($/yr)</label><input type="number" id="fineAvoidance" value="3500" step="500">
+        <div class="tooltip">Estimated annual savings from avoiding missed renewals, violations</div>
+      </div>
+    </div>
+    <button class="btn" onclick="calculate()" style="width:100%">Recalculate</button>
+  </div>
+
+  <div class="right-col">
+    <div class="kpi-grid">
+      <div class="kpi"><div class="lbl">Total Fleet TCO / Year</div><div class="num blue" id="kpiTotalTCO">$0</div></div>
+      <div class="kpi"><div class="lbl">TCO / Vehicle / Year</div><div class="num" id="kpiPerVehicle">$0</div></div>
+      <div class="kpi"><div class="lbl">Cost per Mile</div><div class="num orange" id="kpiPerMile">$0.00</div></div>
+      <div class="kpi"><div class="lbl">Annual ROI with SaaS</div><div class="num green" id="kpiROI">0%</div></div>
+    </div>
+
+    <div class="panel">
+      <h2>TCO Breakdown</h2>
+      <div id="tcoBreakdown" class="results"></div>
+      <div class="chart-container"><canvas id="tcoChart"></canvas></div>
+    </div>
+
+    <div class="panel roi-section">
+      <h2>ROI Analysis — SaaS Platform Impact</h2>
+      <div id="roiBreakdown" class="results"></div>
+      <div class="chart-container"><canvas id="roiChart"></canvas></div>
+    </div>
+
+    <div class="panel">
+      <h2>3-Year Projection</h2>
+      <div class="chart-container" style="height:300px"><canvas id="projChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const fmt=n=>'$'+Math.round(n).toLocaleString();
+const fmtM=n=>'$'+n.toFixed(2);
+
+let tcoChart,roiChart,projChart;
+
+// Vehicle type defaults
+const defaults={
+  van:{mpg:18,pmCost:1800,repairCost:2200,insurance:3200,depreciation:5500},
+  pickup:{mpg:17,pmCost:1600,repairCost:1900,insurance:2800,depreciation:6000},
+  box:{mpg:10,pmCost:2800,repairCost:3500,insurance:4200,depreciation:7500},
+  semi:{mpg:6.5,pmCost:4500,repairCost:5500,insurance:8500,depreciation:12000}
+};
+
+$('vehicleType').addEventListener('change',function(){
+  const d=defaults[this.value];
+  $('mpg').value=d.mpg;$('pmCost').value=d.pmCost;$('repairCost').value=d.repairCost;
+  $('insurance').value=d.insurance;$('depreciation').value=d.depreciation;
+  calculate();
+});
+
+document.querySelectorAll('input[type=range]').forEach(el=>{
+  el.addEventListener('input',()=>{$(el.id+'Val').textContent=el.value+'%';calculate()});
+});
+document.querySelectorAll('input[type=number],select').forEach(el=>el.addEventListener('change',calculate));
+
+function calculate(){
+  const n=+$('fleetSize').value;
+  const miles=+$('annualMiles').value;
+  const fuelPerVehicle=(miles/+$('mpg').value)*+$('fuelCost').value;
+  const pm=+$('pmCost').value,repair=+$('repairCost').value,ins=+$('insurance').value;
+  const dep=+$('depreciation').value,comp=+$('compliance').value,tolls=+$('tolls').value,admin=+$('admin').value;
+  const totalMaint=pm+repair;
+  const tcoPerVehicle=fuelPerVehicle+totalMaint+ins+dep+comp+tolls+admin;
+  const totalTCO=tcoPerVehicle*n;
+  const costPerMile=tcoPerVehicle/miles;
+
+  $('kpiTotalTCO').textContent=fmt(totalTCO);
+  $('kpiPerVehicle').textContent=fmt(tcoPerVehicle);
+  $('kpiPerMile').textContent=fmtM(costPerMile);
+
+  const cats=[
+    {name:'Fuel',value:fuelPerVehicle,color:'#ef4444'},
+    {name:'Preventive Maintenance',value:pm,color:'#f59e0b'},
+    {name:'Unplanned Repairs',value:repair,color:'#f97316'},
+    {name:'Insurance',value:ins,color:'#8b5cf6'},
+    {name:'Depreciation',value:dep,color:'#3b82f6'},
+    {name:'Compliance & Registration',value:comp,color:'#22c55e'},
+    {name:'Tolls & Violations',value:tolls,color:'#06b6d4'},
+    {name:'Admin Overhead',value:admin,color:'#ec4899'}
+  ];
+
+  $('tcoBreakdown').innerHTML=cats.map(c=>`
+    <div class="metric-card"><span class="label">${c.name}</span><span class="value">${fmt(c.value)}/veh/yr</span></div>
+  `).join('');
+
+  // TCO Chart
+  if(tcoChart)tcoChart.destroy();
+  tcoChart=new Chart($('tcoChart'),{type:'doughnut',data:{labels:cats.map(c=>c.name),datasets:[{data:cats.map(c=>c.value),backgroundColor:cats.map(c=>c.color),borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#94a3b8',font:{size:11},padding:8}}}}});
+
+  // ROI
+  const saasCostPerVehicle=+$('saasPrice').value*12;
+  const saasCostTotal=saasCostPerVehicle*n+$('implCost').value*1;
+  const fuelSav=fuelPerVehicle*(+$('fuelSavings').value/100);
+  const maintSav=totalMaint*(+$('maintSavings').value/100);
+  const adminSav=admin*(+$('adminSavings').value/100);
+  const fineAv=+$('fineAvoidance').value/n;
+  const totalSavPerVehicle=fuelSav+maintSav+adminSav+fineAv;
+  const totalSavFleet=totalSavPerVehicle*n;
+  const netBenefit=totalSavFleet-saasCostTotal;
+  const roiPct=saasCostTotal>0?((netBenefit/saasCostTotal)*100):0;
+  const paybackMonths=totalSavFleet>0?(saasCostTotal/(totalSavFleet/12)):999;
+
+  $('kpiROI').textContent=Math.round(roiPct)+'%';
+  $('kpiROI').className='num '+(roiPct>0?'green':'red');
+
+  const roiItems=[
+    {name:'SaaS Platform Cost (Year 1)',value:fmt(saasCostTotal),cls:'red'},
+    {name:'Fuel Savings',value:fmt(fuelSav*n),cls:'green'},
+    {name:'Maintenance Savings',value:fmt(maintSav*n),cls:'green'},
+    {name:'Admin Time Savings',value:fmt(adminSav*n),cls:'green'},
+    {name:'Compliance Fine Avoidance',value:fmt(fineAv*n),cls:'green'},
+    {name:'Net Annual Benefit',value:fmt(netBenefit),cls:netBenefit>0?'green':'red'},
+    {name:'Payback Period',value:paybackMonths<99?Math.round(paybackMonths)+' months':'N/A',cls:'blue'},
+  ];
+  $('roiBreakdown').innerHTML=roiItems.map(r=>`
+    <div class="metric-card"><span class="label">${r.name}</span><span class="value ${r.cls}">${r.value}</span></div>
+  `).join('');
+
+  // ROI Bar Chart
+  if(roiChart)roiChart.destroy();
+  roiChart=new Chart($('roiChart'),{type:'bar',data:{labels:['SaaS Cost','Fuel Savings','Maint Savings','Admin Savings','Fine Avoidance','Net Benefit'],datasets:[{data:[-saasCostTotal,fuelSav*n,maintSav*n,adminSav*n,fineAv*n,netBenefit],backgroundColor:['#ef4444','#22c55e','#22c55e','#22c55e','#22c55e',netBenefit>0?'#3b82f6':'#ef4444'],borderWidth:0,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{color:'#94a3b8',callback:v=>'$'+Math.round(v/1000)+'k'},grid:{color:'#334155'}},x:{ticks:{color:'#94a3b8',font:{size:10}},grid:{display:false}}}}});
+
+  // 3-Year Projection
+  const yr=[1,2,3];
+  const withoutSaaS=yr.map(y=>totalTCO*(1+0.04*(y-1)));// 4% annual cost inflation
+  const withSaaS=yr.map(y=>(tcoPerVehicle-totalSavPerVehicle)*n*(1+0.03*(y-1))+saasCostPerVehicle*n);// slightly lower inflation with optimization
+  const cumSavings=yr.map((y,i)=>withoutSaaS.slice(0,i+1).reduce((a,b)=>a+b,0)-withSaaS.slice(0,i+1).reduce((a,b)=>a+b,0));
+
+  if(projChart)projChart.destroy();
+  projChart=new Chart($('projChart'),{type:'bar',data:{labels:['Year 1','Year 2','Year 3'],datasets:[
+    {label:'Without SaaS Platform',data:withoutSaaS,backgroundColor:'#ef444488',borderRadius:4},
+    {label:'With SaaS Platform',data:withSaaS,backgroundColor:'#3b82f688',borderRadius:4},
+    {label:'Cumulative Savings',data:cumSavings,type:'line',borderColor:'#22c55e',backgroundColor:'#22c55e22',pointRadius:5,pointBackgroundColor:'#22c55e',yAxisID:'y1'}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8'}}},scales:{y:{ticks:{color:'#94a3b8',callback:v=>'$'+Math.round(v/1000)+'k'},grid:{color:'#334155'}},y1:{position:'right',ticks:{color:'#22c55e',callback:v=>'$'+Math.round(v/1000)+'k'},grid:{display:false}},x:{ticks:{color:'#94a3b8'},grid:{display:false}}}}});
+}
+
+calculate();
+</script>
+</body>
+</html>

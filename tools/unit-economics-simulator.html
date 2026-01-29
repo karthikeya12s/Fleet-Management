@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unit Economics Simulator — 5 Fleet Business Models</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#0f172a;--surface:#1e293b;--surface2:#334155;--border:#475569;--text:#e2e8f0;--text2:#94a3b8;--accent:#3b82f6;--green:#22c55e;--red:#ef4444;--orange:#f59e0b;--purple:#8b5cf6;--radius:10px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.header h1{font-size:1.3rem;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.tabs{display:flex;gap:4px;background:var(--surface2);padding:4px;border-radius:8px;margin:20px 24px 0}
+.tab{padding:10px 18px;border-radius:6px;font-size:.85rem;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--text2);transition:all .2s}
+.tab.active{background:var(--accent);color:#fff}
+.tab:hover:not(.active){background:var(--border);color:var(--text)}
+.container{max-width:1400px;margin:0 auto;padding:20px 24px;display:grid;grid-template-columns:360px 1fr;gap:24px}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.panel h2{font-size:.95rem;font-weight:600;margin-bottom:14px;color:var(--accent)}
+.field{margin-bottom:10px}
+.field label{display:flex;justify-content:space-between;font-size:.78rem;color:var(--text2);margin-bottom:3px}
+.field label span{color:var(--accent);font-weight:600}
+.field input[type=range]{width:100%;accent-color:var(--accent)}
+.field input[type=number]{width:100%;padding:7px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:.85rem;outline:none}
+.field input[type=number]:focus{border-color:var(--accent)}
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center}
+.kpi .v{font-size:1.4rem;font-weight:800;margin:2px 0}
+.kpi .l{font-size:.7rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+.kpi .v.g{color:var(--green)}.kpi .v.r{color:var(--red)}.kpi .v.b{color:var(--accent)}.kpi .v.o{color:var(--orange)}.kpi .v.p{color:var(--purple)}
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.chart-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.chart-box h3{font-size:.85rem;color:var(--text2);margin-bottom:10px}
+.chart-wrap{position:relative;height:260px}
+.sensitivity{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-top:20px}
+.sensitivity h3{font-size:.9rem;margin-bottom:14px;color:var(--purple)}
+.sense-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);border-radius:8px;overflow:hidden;font-size:.78rem;text-align:center}
+.sense-grid div{padding:8px;background:var(--surface)}
+.sense-grid .hdr{background:var(--surface2);font-weight:600;color:var(--accent)}
+.sense-grid .good{color:var(--green)}.sense-grid .bad{color:var(--red)}
+.right-col{display:flex;flex-direction:column;gap:20px}
+@media(max-width:1000px){.container{grid-template-columns:1fr}.kpi-row{grid-template-columns:repeat(2,1fr)}.charts{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Unit Economics Simulator</h1>
+  <span style="font-size:.75rem;color:var(--text2)">Phase 1 Exercises &mdash; All 5 Business Models</span>
+</div>
+<div class="tabs" id="tabs"></div>
+<div class="container">
+  <div class="panel" id="inputPanel"></div>
+  <div class="right-col">
+    <div class="kpi-row" id="kpis"></div>
+    <div class="charts">
+      <div class="chart-box"><h3>Revenue Composition</h3><div class="chart-wrap"><canvas id="revenueChart"></canvas></div></div>
+      <div class="chart-box"><h3>3-Year Projection</h3><div class="chart-wrap"><canvas id="projChart"></canvas></div></div>
+    </div>
+    <div class="sensitivity"><h3>Sensitivity Analysis</h3><div class="sense-grid" id="senseGrid"></div></div>
+  </div>
+</div>
+<script>
+const models={
+  saas:{name:'SaaS Platform',color:'#3b82f6',fields:[
+    {id:'customers',label:'Customers',min:10,max:2000,val:200,step:10},
+    {id:'avgFleet',label:'Avg Fleet Size',min:10,max:500,val:45,step:5},
+    {id:'arpu',label:'ARPU ($/vehicle/mo)',min:5,max:60,val:22,step:1},
+    {id:'churn',label:'Monthly Churn (%)',min:0,max:10,val:2,step:0.5},
+    {id:'cac',label:'CAC ($)',min:100,max:5000,val:1000,step:100},
+    {id:'cogs',label:'COGS (% of revenue)',min:5,max:50,val:20,step:1},
+    {id:'growth',label:'Monthly Customer Growth (%)',min:0,max:20,val:8,step:1}
+  ],calc(f){
+    const vehicles=f.customers*f.avgFleet;
+    const mrr=vehicles*f.arpu;const arr=mrr*12;
+    const grossMargin=1-f.cogs/100;const monthlyGM=mrr*grossMargin;
+    const ltMonths=f.churn>0?1/(f.churn/100):120;
+    const ltv=f.arpu*f.avgFleet*ltMonths*grossMargin;
+    const ltvCac=ltv/f.cac;const payback=f.cac/(f.arpu*f.avgFleet*grossMargin);
+    const y=[1,2,3].map(y=>{let c=f.customers;let r=0;for(let m=0;m<12*y;m++){r+=c*f.avgFleet*f.arpu;c=Math.round(c*(1+f.growth/100)*(1-f.churn/100));}return r});
+    return{kpis:[
+      {l:'ARR',v:'$'+(arr/1e6).toFixed(1)+'M',c:'b'},{l:'Gross Margin',v:Math.round(grossMargin*100)+'%',c:grossMargin>.7?'g':'o'},
+      {l:'LTV:CAC',v:ltvCac.toFixed(1)+'x',c:ltvCac>3?'g':'r'},{l:'Payback',v:payback.toFixed(1)+' mo',c:payback<12?'g':'o'}
+    ],rev:{labels:['Subscriptions'],data:[arr],colors:['#3b82f6']},proj:y,
+    sense:{'Churn 1%':this._s(f,{churn:1}),'Churn 3%':this._s(f,{churn:3}),'ARPU $15':this._s(f,{arpu:15}),'ARPU $35':this._s(f,{arpu:35})}};
+  },_s(f,o){const n={...f,...o};const v=n.customers*n.avgFleet;const mrr=v*n.arpu;const gm=1-n.cogs/100;const lt=n.churn>0?1/(n.churn/100):120;return{arr:mrr*12,ltv:n.arpu*n.avgFleet*lt*gm,ltvCac:(n.arpu*n.avgFleet*lt*gm)/n.cac}}},
+
+  hwsw:{name:'HW + SW Bundle',color:'#f59e0b',fields:[
+    {id:'vehicles',label:'Vehicles Deployed',min:1000,max:200000,val:15000,step:1000},
+    {id:'hwPrice',label:'Device MSRP ($)',min:100,max:800,val:349,step:10},
+    {id:'hwCogs',label:'Device COGS ($)',min:50,max:500,val:210,step:10},
+    {id:'subPrice',label:'Subscription ($/veh/mo)',min:15,max:80,val:40,step:1},
+    {id:'churn',label:'Monthly Churn (%)',min:0,max:5,val:1.2,step:0.1},
+    {id:'cac',label:'CAC ($/vehicle)',min:50,max:500,val:150,step:10},
+    {id:'growth',label:'Monthly Vehicle Growth (%)',min:0,max:15,val:6,step:1}
+  ],calc(f){
+    const hwRev=f.vehicles*f.hwPrice;const hwMargin=(f.hwPrice-f.hwCogs)/f.hwPrice;
+    const subARR=f.vehicles*f.subPrice*12;const subMargin=0.88;
+    const totalARR=hwRev+subARR;const blendedMargin=(hwRev*hwMargin+subARR*subMargin)/totalARR;
+    const ltMonths=f.churn>0?1/(f.churn/100):120;const ltv=(f.subPrice*ltMonths*subMargin)+(f.hwPrice-f.hwCogs);
+    const ltvCac=ltv/f.cac;
+    const y=[1,2,3].map(y=>{let v=f.vehicles;let r=0;for(let m=0;m<12*y;m++){r+=v*f.subPrice;v=Math.round(v*(1+f.growth/100)*(1-f.churn/100));}return r+f.vehicles*f.hwPrice*(y===1?1:0.5)});
+    return{kpis:[
+      {l:'Total Revenue (Y1)',v:'$'+(totalARR/1e6).toFixed(1)+'M',c:'b'},{l:'HW Margin',v:Math.round(hwMargin*100)+'%',c:hwMargin>.3?'g':'r'},
+      {l:'LTV:CAC',v:ltvCac.toFixed(1)+'x',c:ltvCac>3?'g':'r'},{l:'Sub ARR',v:'$'+(subARR/1e6).toFixed(1)+'M',c:'p'}
+    ],rev:{labels:['Hardware','Subscriptions'],data:[hwRev,subARR],colors:['#f59e0b','#3b82f6']},proj:y,
+    sense:{'COGS $130':this._s(f,{hwCogs:130}),'COGS $280':this._s(f,{hwCogs:280}),'Sub $30':this._s(f,{subPrice:30}),'Sub $55':this._s(f,{subPrice:55})}};
+  },_s(f,o){const n={...f,...o};const hw=n.vehicles*(n.hwPrice-n.hwCogs);const sub=n.vehicles*n.subPrice*12*0.88;return{arr:n.vehicles*n.hwPrice+n.vehicles*n.subPrice*12,ltv:(n.subPrice*(n.churn>0?1/(n.churn/100):120)*0.88)+(n.hwPrice-n.hwCogs),ltvCac:((n.subPrice*(n.churn>0?1/(n.churn/100):120)*0.88)+(n.hwPrice-n.hwCogs))/n.cac}}},
+
+  managed:{name:'Managed Services',color:'#22c55e',fields:[
+    {id:'clients',label:'Clients',min:1,max:300,val:25,step:1},
+    {id:'avgFleet',label:'Avg Fleet per Client',min:30,max:500,val:130,step:10},
+    {id:'mgmtFee',label:'Mgmt Fee ($/veh/mo)',min:40,max:150,val:80,step:5},
+    {id:'gainShare',label:'Annual Gain-Share ($/veh)',min:0,max:30,val:10,step:1},
+    {id:'fosCapacity',label:'Vehicles per FOS',min:200,max:500,val:330,step:10},
+    {id:'fosCost',label:'FOS Fully-Loaded Cost ($/yr)',min:60000,max:120000,val:85000,step:5000},
+    {id:'growth',label:'New Clients / Month',min:0,max:10,val:2,step:1}
+  ],calc(f){
+    const vehicles=f.clients*f.avgFleet;const mgmtRev=vehicles*f.mgmtFee*12;
+    const gainRev=vehicles*f.gainShare;const totalRev=mgmtRev+gainRev;
+    const fosCount=Math.ceil(vehicles/f.fosCapacity);const fosCost=fosCount*f.fosCost;
+    const techCost=f.clients*500*12;const totalCost=fosCost+techCost;
+    const grossMargin=(totalRev-totalCost)/totalRev;
+    const acv=(f.avgFleet*f.mgmtFee*12)+(f.avgFleet*f.gainShare);
+    const y=[1,2,3].map(y=>{let c=f.clients;let r=0;for(let m=0;m<12*y;m++){r+=c*f.avgFleet*(f.mgmtFee+f.gainShare/12);c+=f.growth;}return r});
+    return{kpis:[
+      {l:'Annual Revenue',v:'$'+(totalRev/1e6).toFixed(1)+'M',c:'b'},{l:'Gross Margin',v:Math.round(grossMargin*100)+'%',c:grossMargin>.5?'g':'r'},
+      {l:'FOS Headcount',v:fosCount,c:'p'},{l:'Rev / FOS',v:'$'+Math.round(totalRev/fosCount/1000)+'k',c:'o'}
+    ],rev:{labels:['Management Fees','Gain-Sharing'],data:[mgmtRev,gainRev],colors:['#22c55e','#3b82f6']},proj:y,
+    sense:{'Fee $65':this._s(f,{mgmtFee:65}),'Fee $95':this._s(f,{mgmtFee:95}),'FOS 280':this._s(f,{fosCapacity:280}),'FOS 400':this._s(f,{fosCapacity:400})}};
+  },_s(f,o){const n={...f,...o};const v=n.clients*n.avgFleet;const rev=v*n.mgmtFee*12+v*n.gainShare;const cost=Math.ceil(v/n.fosCapacity)*n.fosCost+n.clients*6000;return{arr:rev,ltv:n.avgFleet*n.mgmtFee*36,ltvCac:0}}},
+
+  data:{name:'Data Monetization',color:'#8b5cf6',fields:[
+    {id:'vehicles',label:'Contributing Vehicles',min:10000,max:1000000,val:50000,step:10000},
+    {id:'buyers',label:'Data Buyer Clients',min:1,max:100,val:8,step:1},
+    {id:'avgAcv',label:'Avg Buyer ACV ($)',min:25000,max:500000,val:120000,step:10000},
+    {id:'customRev',label:'Custom Analytics Rev ($)',min:0,max:2000000,val:600000,step:50000},
+    {id:'revShare',label:'Fleet Payout ($/veh/mo)',min:0,max:5,val:1.5,step:0.25},
+    {id:'infraCost',label:'Infra Cost ($/veh/yr)',min:1,max:10,val:3,step:0.5},
+    {id:'growth',label:'Vehicle Growth (%/mo)',min:0,max:15,val:8,step:1}
+  ],calc(f){
+    const subRev=f.buyers*f.avgAcv;const totalRev=subRev+f.customRev;
+    const payouts=f.vehicles*f.revShare*12;const infra=f.vehicles*f.infraCost;
+    const grossMargin=(totalRev-payouts-infra)/totalRev;
+    const y=[1,2,3].map(y=>{let v=f.vehicles;let b=f.buyers;let r=0;for(let m=0;m<12*y;m++){r+=b*f.avgAcv/12+f.customRev/12;v=Math.round(v*(1+f.growth/100));b+=(y<2?0.5:1);}return r});
+    return{kpis:[
+      {l:'Annual Revenue',v:'$'+(totalRev/1e6).toFixed(1)+'M',c:'b'},{l:'Gross Margin',v:Math.round(grossMargin*100)+'%',c:grossMargin>.5?'g':'r'},
+      {l:'Fleet Payouts',v:'$'+(payouts/1000).toFixed(0)+'k',c:'o'},{l:'Vehicles',v:(f.vehicles/1000).toFixed(0)+'k',c:'p'}
+    ],rev:{labels:['Subscriptions','Custom Analytics'],data:[subRev,f.customRev],colors:['#8b5cf6','#3b82f6']},proj:y,
+    sense:{'ACV $80k':this._s(f,{avgAcv:80000}),'ACV $200k':this._s(f,{avgAcv:200000}),'Payout $1':this._s(f,{revShare:1}),'Payout $3':this._s(f,{revShare:3})}};
+  },_s(f,o){const n={...f,...o};const rev=n.buyers*n.avgAcv+n.customRev;const cost=n.vehicles*n.revShare*12+n.vehicles*n.infraCost;return{arr:rev,ltv:n.avgAcv*3,ltvCac:0}}},
+
+  marketplace:{name:'Marketplace',color:'#ec4899',fields:[
+    {id:'fleets',label:'Active Fleet Operators',min:10,max:5000,val:150,step:10},
+    {id:'vendors',label:'Active Vendors',min:10,max:10000,val:500,step:50},
+    {id:'txPerFleet',label:'Transactions / Fleet / Month',min:1,max:30,val:8,step:1},
+    {id:'avgTx',label:'Avg Transaction Value ($)',min:100,max:3000,val:650,step:50},
+    {id:'takeRate',label:'Take Rate (%)',min:3,max:15,val:8.5,step:0.5},
+    {id:'vendorSubs',label:'Paid Vendor Subs',min:0,max:2000,val:100,step:10},
+    {id:'growth',label:'Fleet Growth (%/mo)',min:0,max:20,val:10,step:1}
+  ],calc(f){
+    const monthlyGMV=f.fleets*f.txPerFleet*f.avgTx;const annualGMV=monthlyGMV*12;
+    const txRev=annualGMV*(f.takeRate/100);const subRev=f.vendorSubs*99*12;
+    const totalRev=txRev+subRev;const grossMargin=0.67;
+    const y=[1,2,3].map(y=>{let fl=f.fleets;let r=0;for(let m=0;m<12*y;m++){r+=fl*f.txPerFleet*f.avgTx*(f.takeRate/100);fl=Math.round(fl*(1+f.growth/100));}return r+subRev*y});
+    return{kpis:[
+      {l:'Annual GMV',v:'$'+(annualGMV/1e6).toFixed(1)+'M',c:'b'},{l:'Net Revenue',v:'$'+(totalRev/1e6).toFixed(1)+'M',c:'g'},
+      {l:'Take Rate',v:f.takeRate+'%',c:'o'},{l:'Monthly GMV',v:'$'+(monthlyGMV/1e6).toFixed(2)+'M',c:'p'}
+    ],rev:{labels:['Transaction Fees','Vendor Subscriptions'],data:[txRev,subRev],colors:['#ec4899','#3b82f6']},proj:y,
+    sense:{'Take 6%':this._s(f,{takeRate:6}),'Take 12%':this._s(f,{takeRate:12}),'AvgTx $400':this._s(f,{avgTx:400}),'AvgTx $900':this._s(f,{avgTx:900})}};
+  },_s(f,o){const n={...f,...o};const gmv=n.fleets*n.txPerFleet*n.avgTx*12;return{arr:gmv*(n.takeRate/100),ltv:0,ltvCac:0}}}
+};
+
+let current='saas',revChart,projChart;
+const $=id=>document.getElementById(id);
+
+function initTabs(){
+  $('tabs').innerHTML=Object.entries(models).map(([k,m])=>
+    `<button class="tab${k===current?' active':''}" data-m="${k}" style="${k===current?'background:'+m.color:''}">${m.name}</button>`
+  ).join('');
+  $('tabs').querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{current=t.dataset.m;initTabs();renderInputs();calc()}));
+}
+
+function renderInputs(){
+  const m=models[current];
+  $('inputPanel').innerHTML=`<h2 style="color:${m.color}">${m.name} — Parameters</h2>`+
+    m.fields.map(f=>`<div class="field"><label>${f.label} <span id="${f.id}Val">${f.val}</span></label>
+    <input type="range" id="${f.id}" min="${f.min}" max="${f.max}" value="${f.val}" step="${f.step}"></div>`).join('');
+  m.fields.forEach(f=>{$(f.id).addEventListener('input',e=>{$(f.id+'Val').textContent=+e.target.value;calc()})});
+}
+
+function getFields(){const m=models[current];const o={};m.fields.forEach(f=>o[f.id]=+$(f.id).value);return o}
+
+function calc(){
+  const m=models[current];const f=getFields();const r=m.calc(f);
+
+  $('kpis').innerHTML=r.kpis.map(k=>`<div class="kpi"><div class="l">${k.l}</div><div class="v ${k.c}">${k.v}</div></div>`).join('');
+
+  if(revChart)revChart.destroy();
+  revChart=new Chart($('revenueChart'),{type:'doughnut',data:{labels:r.rev.labels,datasets:[{data:r.rev.data,backgroundColor:r.rev.colors,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#94a3b8',font:{size:11}}}}}});
+
+  if(projChart)projChart.destroy();
+  projChart=new Chart($('projChart'),{type:'bar',data:{labels:['Year 1','Year 2','Year 3'],datasets:[{label:'Revenue',data:r.proj,backgroundColor:m.color+'88',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{color:'#94a3b8',callback:v=>v>=1e6?'$'+(v/1e6).toFixed(1)+'M':'$'+(v/1000).toFixed(0)+'k'},grid:{color:'#334155'}},x:{ticks:{color:'#94a3b8'},grid:{display:false}}}}});
+
+  // Sensitivity
+  const se=r.sense;const keys=Object.keys(se);
+  let html='<div class="hdr">Scenario</div><div class="hdr">Annual Rev</div><div class="hdr">LTV</div><div class="hdr">LTV:CAC</div><div class="hdr">vs Base</div>';
+  const baseRev=r.rev.data.reduce((a,b)=>a+b,0);
+  keys.forEach(k=>{
+    const s=se[k];const diff=((s.arr-baseRev)/baseRev*100);
+    html+=`<div>${k}</div><div>$${(s.arr/1e6).toFixed(2)}M</div><div>${s.ltv?'$'+Math.round(s.ltv).toLocaleString():'--'}</div><div>${s.ltvCac?s.ltvCac.toFixed(1)+'x':'--'}</div><div class="${diff>=0?'good':'bad'}">${diff>=0?'+':''}${diff.toFixed(1)}%</div>`;
+  });
+  $('senseGrid').innerHTML=html;
+}
+
+initTabs();renderInputs();calc();
+</script>
+</body>
+</html>

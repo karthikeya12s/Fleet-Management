@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RICE Prioritization Board — Fleet Management</title>
+<style>
+:root{--bg:#0f172a;--surface:#1e293b;--surface2:#334155;--border:#475569;--text:#e2e8f0;--text2:#94a3b8;--accent:#3b82f6;--green:#22c55e;--red:#ef4444;--orange:#f59e0b;--purple:#8b5cf6;--radius:10px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.header h1{font-size:1.3rem;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.toolbar{display:flex;gap:10px;padding:16px 24px;background:var(--surface);border-bottom:1px solid var(--border)}
+.btn{padding:8px 16px;border-radius:6px;font-size:.82rem;font-weight:600;cursor:pointer;border:none;transition:all .2s}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{opacity:.85}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}.btn-outline:hover{background:var(--surface2)}
+.btn-green{background:var(--green);color:#fff}
+.container{padding:20px 24px;max-width:1600px;margin:0 auto}
+table{width:100%;border-collapse:collapse;background:var(--surface);border-radius:var(--radius);overflow:hidden;border:1px solid var(--border)}
+th{background:var(--surface2);padding:12px 14px;font-size:.78rem;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;text-align:left;cursor:pointer;user-select:none;white-space:nowrap}
+th:hover{color:var(--accent)}
+th.sorted-asc::after{content:' \u2191'}
+th.sorted-desc::after{content:' \u2193'}
+td{padding:10px 14px;border-top:1px solid var(--border);font-size:.85rem;vertical-align:middle}
+tr:hover td{background:var(--surface2)}
+.rank{width:40px;text-align:center;font-weight:700;color:var(--accent)}
+.feature-name{font-weight:600;max-width:280px}
+.score-input{width:60px;padding:5px 8px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:.85rem;text-align:center}
+.score-input:focus{border-color:var(--accent);outline:none}
+.rice-score{font-size:1.1rem;font-weight:800;min-width:60px;text-align:center;padding:6px 10px;border-radius:6px}
+.rice-high{background:rgba(34,197,94,.15);color:var(--green)}
+.rice-med{background:rgba(245,158,11,.15);color:var(--orange)}
+.rice-low{background:rgba(239,68,68,.15);color:var(--red)}
+.priority-badge{padding:3px 10px;border-radius:12px;font-size:.72rem;font-weight:600;text-transform:uppercase}
+.p0{background:rgba(239,68,68,.2);color:var(--red)}
+.p1{background:rgba(245,158,11,.2);color:var(--orange)}
+.p2{background:rgba(59,130,246,.2);color:var(--accent)}
+.actions{display:flex;gap:6px}
+.act-btn{width:28px;height:28px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-size:.8rem;display:flex;align-items:center;justify-content:center}
+.act-btn:hover{background:var(--surface2);color:var(--text)}
+.act-btn.del:hover{background:rgba(239,68,68,.2);color:var(--red)}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:200}
+.modal-overlay.show{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;width:450px;max-width:90vw}
+.modal h2{font-size:1rem;margin-bottom:16px;color:var(--accent)}
+.modal .field{margin-bottom:12px}
+.modal .field label{display:block;font-size:.8rem;color:var(--text2);margin-bottom:4px}
+.modal .field input,.modal .field textarea{width:100%;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:.85rem;outline:none}
+.modal .field textarea{height:60px;resize:vertical}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}
+.export-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-top:20px;display:none}
+.export-box textarea{width:100%;height:200px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:monospace;font-size:.8rem;padding:12px}
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.summary-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center}
+.summary-card .v{font-size:1.5rem;font-weight:800;margin:4px 0}
+.summary-card .l{font-size:.72rem;color:var(--text2)}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>RICE Prioritization Board</h1>
+  <span style="font-size:.75rem;color:var(--text2)">Exercise 3.3 &mdash; Compliance Feature Prioritization</span>
+</div>
+<div class="toolbar">
+  <button class="btn btn-primary" onclick="showAdd()">+ Add Feature</button>
+  <button class="btn btn-outline" onclick="resetDefaults()">Reset to Defaults</button>
+  <button class="btn btn-outline" onclick="toggleExport()">Export as Markdown</button>
+  <button class="btn btn-outline" onclick="saveToLocal()">Save Progress</button>
+  <span style="flex:1"></span>
+  <span style="font-size:.78rem;color:var(--text2)">Click column headers to sort</span>
+</div>
+<div class="container">
+  <div class="summary" id="summary"></div>
+  <table>
+    <thead><tr>
+      <th data-col="rank" style="width:50px">#</th>
+      <th data-col="name">Feature</th>
+      <th data-col="reach" title="Users reached per quarter">Reach</th>
+      <th data-col="impact" title="0.25=Min, 0.5=Low, 1=Med, 2=High, 3=Massive">Impact</th>
+      <th data-col="confidence" title="Confidence percentage">Confidence %</th>
+      <th data-col="effort" title="Person-months">Effort (PM)</th>
+      <th data-col="rice" style="width:100px">RICE Score</th>
+      <th data-col="priority">Priority</th>
+      <th style="width:80px">Actions</th>
+    </tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  <div class="export-box" id="exportBox"><textarea id="exportText" readonly></textarea></div>
+</div>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h2 id="modalTitle">Add Feature</h2>
+    <div class="field"><label>Feature Name</label><input id="mName" placeholder="e.g., Vehicle registration expiration tracking"></div>
+    <div class="field"><label>Description</label><textarea id="mDesc" placeholder="Brief description of the feature..."></textarea></div>
+    <div class="field"><label>Reach (users/quarter)</label><input type="number" id="mReach" value="100" min="1"></div>
+    <div class="field"><label>Impact (0.25, 0.5, 1, 2, or 3)</label><input type="number" id="mImpact" value="1" min="0.25" max="3" step="0.25"></div>
+    <div class="field"><label>Confidence (%)</label><input type="number" id="mConf" value="80" min="10" max="100" step="5"></div>
+    <div class="field"><label>Effort (person-months)</label><input type="number" id="mEffort" value="2" min="0.5" step="0.5"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" id="modalSave" onclick="saveFeature()">Add</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let features=[
+  {id:1,name:'Vehicle registration expiration tracking & alerts',desc:'Track reg expiry for all vehicles, auto-alert at 90/60/30 days',reach:180,impact:3,confidence:95,effort:1.5},
+  {id:2,name:'Annual inspection scheduling',desc:'Schedule and track annual DOT inspections',reach:150,impact:2,confidence:90,effort:1},
+  {id:3,name:'Driver license expiration tracking',desc:'Monitor driver license and CDL expiry dates',reach:160,impact:2,confidence:90,effort:1},
+  {id:4,name:'ELD/HOS compliance dashboard',desc:'Partner integration with Motive/KeepTruckin for HOS visibility',reach:80,impact:3,confidence:60,effort:4},
+  {id:5,name:'IFTA fuel tax reporting',desc:'Automated quarterly IFTA reporting from GPS and fuel data',reach:60,impact:2,confidence:70,effort:3},
+  {id:6,name:'DOT medical card tracking',desc:'Track medical card expiry for CDL drivers',reach:100,impact:2,confidence:85,effort:0.5},
+  {id:7,name:'Insurance certificate management',desc:'Store and track insurance cert expiry, auto-request renewals',reach:140,impact:1,confidence:80,effort:1.5},
+  {id:8,name:'DVIR digital form submission',desc:'Mobile app for driver vehicle inspection reports',reach:170,impact:2,confidence:85,effort:2.5},
+  {id:9,name:'Toll violation management',desc:'Track, assign, and resolve toll violations',reach:90,impact:0.5,confidence:75,effort:2},
+  {id:10,name:'OSHA compliance checklists',desc:'Digital OSHA safety checklists for fleet vehicles',reach:50,impact:1,confidence:60,effort:2},
+  {id:11,name:'Title and plate management',desc:'Track title transfers, plate assignments, temp tags',reach:70,impact:0.5,confidence:80,effort:1.5},
+  {id:12,name:'Emissions inspection tracking',desc:'Track emissions inspection requirements by state',reach:60,impact:1,confidence:75,effort:1},
+  {id:13,name:'Automated DMV registration renewal',desc:'E-file registration renewals directly with state DMVs',reach:120,impact:3,confidence:40,effort:6},
+  {id:14,name:'Drug/alcohol testing compliance',desc:'Track random testing schedules and results for DOT compliance',reach:40,impact:2,confidence:65,effort:2},
+  {id:15,name:'CSA score monitoring & recommendations',desc:'Pull FMCSA CSA scores, provide improvement recommendations',reach:50,impact:2,confidence:50,effort:3.5}
+];
+let sortCol='rice',sortDir='desc',editId=null,nextId=16;
+
+function calcRICE(f){return(f.reach*f.impact*(f.confidence/100))/f.effort}
+
+function getPriority(rice){if(rice>=80)return'p0';if(rice>=40)return'p1';return'p2'}
+function getPriorityLabel(rice){if(rice>=80)return'P0 — Must Have';if(rice>=40)return'P1 — Should Have';return'P2 — Nice to Have'}
+function getRiceClass(rice){if(rice>=80)return'rice-high';if(rice>=40)return'rice-med';return'rice-low'}
+
+function render(){
+  const sorted=[...features].map(f=>({...f,rice:calcRICE(f)}));
+  sorted.sort((a,b)=>sortDir==='asc'?a[sortCol]-b[sortCol]:b[sortCol]-a[sortCol]);
+  if(sortCol==='name')sorted.sort((a,b)=>sortDir==='asc'?a.name.localeCompare(b.name):b.name.localeCompare(a.name));
+
+  document.querySelectorAll('th').forEach(th=>{
+    th.classList.remove('sorted-asc','sorted-desc');
+    if(th.dataset.col===sortCol)th.classList.add('sorted-'+sortDir);
+  });
+
+  $('tbody').innerHTML=sorted.map((f,i)=>{
+    const rice=f.rice;const pc=getPriority(rice);
+    return`<tr>
+      <td class="rank">${i+1}</td>
+      <td class="feature-name" title="${f.desc||''}">${f.name}</td>
+      <td><input class="score-input" type="number" value="${f.reach}" min="1" data-id="${f.id}" data-field="reach"></td>
+      <td><input class="score-input" type="number" value="${f.impact}" min="0.25" max="3" step="0.25" data-id="${f.id}" data-field="impact"></td>
+      <td><input class="score-input" type="number" value="${f.confidence}" min="10" max="100" step="5" data-id="${f.id}" data-field="confidence"></td>
+      <td><input class="score-input" type="number" value="${f.effort}" min="0.5" step="0.5" data-id="${f.id}" data-field="effort"></td>
+      <td><span class="rice-score ${getRiceClass(rice)}">${Math.round(rice)}</span></td>
+      <td><span class="priority-badge ${pc}">${getPriorityLabel(rice)}</span></td>
+      <td class="actions">
+        <button class="act-btn" title="Edit" onclick="editFeature(${f.id})">&#9998;</button>
+        <button class="act-btn del" title="Delete" onclick="delFeature(${f.id})">&#10005;</button>
+      </td>
+    </tr>`}).join('');
+
+  document.querySelectorAll('.score-input').forEach(el=>el.addEventListener('change',e=>{
+    const feat=features.find(f=>f.id===+e.target.dataset.id);
+    if(feat)feat[e.target.dataset.field]=+e.target.value;
+    render();
+  }));
+
+  // Summary
+  const allRice=sorted.map(f=>f.rice);
+  const p0=sorted.filter(f=>f.rice>=80).length;
+  const p1=sorted.filter(f=>f.rice>=40&&f.rice<80).length;
+  const totalEffort=features.reduce((a,f)=>a+f.effort,0);
+  $('summary').innerHTML=`
+    <div class="summary-card"><div class="l">Total Features</div><div class="v" style="color:var(--accent)">${features.length}</div></div>
+    <div class="summary-card"><div class="l">P0 (Must Have)</div><div class="v" style="color:var(--green)">${p0}</div></div>
+    <div class="summary-card"><div class="l">P1 (Should Have)</div><div class="v" style="color:var(--orange)">${p1}</div></div>
+    <div class="summary-card"><div class="l">Total Effort</div><div class="v" style="color:var(--purple)">${totalEffort.toFixed(1)} PM</div></div>
+  `;
+}
+
+document.querySelectorAll('th[data-col]').forEach(th=>th.addEventListener('click',()=>{
+  const col=th.dataset.col;
+  if(sortCol===col)sortDir=sortDir==='asc'?'desc':'asc';
+  else{sortCol=col;sortDir='desc';}
+  render();
+}));
+
+const $=id=>document.getElementById(id);
+function showAdd(){editId=null;$('modalTitle').textContent='Add Feature';$('mName').value='';$('mDesc').value='';$('mReach').value=100;$('mImpact').value=1;$('mConf').value=80;$('mEffort').value=2;$('modal').classList.add('show')}
+function editFeature(id){editId=id;const f=features.find(x=>x.id===id);$('modalTitle').textContent='Edit Feature';$('mName').value=f.name;$('mDesc').value=f.desc||'';$('mReach').value=f.reach;$('mImpact').value=f.impact;$('mConf').value=f.confidence;$('mEffort').value=f.effort;$('modal').classList.add('show')}
+function closeModal(){$('modal').classList.remove('show')}
+function saveFeature(){
+  const data={name:$('mName').value,desc:$('mDesc').value,reach:+$('mReach').value,impact:+$('mImpact').value,confidence:+$('mConf').value,effort:+$('mEffort').value};
+  if(!data.name)return;
+  if(editId){const f=features.find(x=>x.id===editId);Object.assign(f,data)}
+  else{features.push({id:nextId++,...data})}
+  closeModal();render();
+}
+function delFeature(id){if(confirm('Delete this feature?')){features=features.filter(f=>f.id!==id);render()}}
+
+function toggleExport(){
+  const box=$('exportBox');box.style.display=box.style.display==='none'?'block':'none';
+  const sorted=[...features].map(f=>({...f,rice:calcRICE(f)})).sort((a,b)=>b.rice-a.rice);
+  let md='# RICE Prioritization — Fleet Compliance Features\n\n';
+  md+='| # | Feature | Reach | Impact | Confidence | Effort | RICE | Priority |\n';
+  md+='|---|---------|-------|--------|------------|--------|------|----------|\n';
+  sorted.forEach((f,i)=>{
+    md+=`| ${i+1} | ${f.name} | ${f.reach} | ${f.impact} | ${f.confidence}% | ${f.effort} PM | **${Math.round(f.rice)}** | ${getPriorityLabel(f.rice)} |\n`;
+  });
+  $('exportText').value=md;
+}
+function saveToLocal(){localStorage.setItem('rice-features',JSON.stringify(features));alert('Saved!')}
+function loadFromLocal(){const d=localStorage.getItem('rice-features');if(d){features=JSON.parse(d);nextId=Math.max(...features.map(f=>f.id))+1}}
+function resetDefaults(){if(confirm('Reset all features to defaults?')){localStorage.removeItem('rice-features');location.reload()}}
+
+loadFromLocal();render();
+</script>
+</body>
+</html>

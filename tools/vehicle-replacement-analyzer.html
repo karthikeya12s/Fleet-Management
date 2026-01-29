@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vehicle Replacement Decision Analyzer</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#0f172a;--surface:#1e293b;--surface2:#334155;--border:#475569;--text:#e2e8f0;--text2:#94a3b8;--accent:#22c55e;--blue:#3b82f6;--red:#ef4444;--orange:#f59e0b;--purple:#8b5cf6;--radius:10px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between}
+.header h1{font-size:1.3rem;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.container{max-width:1400px;margin:0 auto;padding:20px 24px;display:grid;grid-template-columns:380px 1fr;gap:24px}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.panel h2{font-size:.95rem;font-weight:600;margin-bottom:14px;color:var(--accent)}
+.section{margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+.section h3{font-size:.78rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.field{margin-bottom:10px}
+.field label{display:flex;justify-content:space-between;font-size:.78rem;color:var(--text2);margin-bottom:3px}
+.field label span{color:var(--accent);font-weight:600}
+.field input[type=range]{width:100%;accent-color:var(--accent)}
+.field select{width:100%;padding:7px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:.85rem}
+.right-col{display:flex;flex-direction:column;gap:20px}
+.recommendation{background:linear-gradient(135deg,rgba(34,197,94,.1),rgba(59,130,246,.1));border:2px solid var(--accent);border-radius:var(--radius);padding:24px;text-align:center}
+.recommendation h2{font-size:1rem;color:var(--accent);margin-bottom:8px}
+.recommendation .big{font-size:2.2rem;font-weight:900;color:var(--text);margin:8px 0}
+.recommendation .sub{font-size:.85rem;color:var(--text2)}
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center}
+.kpi .v{font-size:1.3rem;font-weight:800;margin:2px 0}
+.kpi .l{font-size:.7rem;color:var(--text2)}
+.chart-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.chart-box h3{font-size:.85rem;color:var(--text2);margin-bottom:10px}
+.chart-wrap{position:relative;height:320px}
+.scenarios{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.scenario{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.scenario h4{font-size:.85rem;color:var(--blue);margin-bottom:8px}
+.scenario .row{display:flex;justify-content:space-between;font-size:.8rem;padding:4px 0;border-bottom:1px solid var(--border)}
+.scenario .row:last-child{border-bottom:none;font-weight:700;color:var(--accent)}
+@media(max-width:1000px){.container{grid-template-columns:1fr}.kpi-row,.scenarios{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Vehicle Replacement Decision Analyzer</h1>
+  <span style="font-size:.75rem;color:var(--text2)">Exercise 3.3 &mdash; Managed Services</span>
+</div>
+<div class="container">
+  <div class="panel">
+    <h2>Vehicle Parameters</h2>
+    <div class="section">
+      <h3>Vehicle Profile</h3>
+      <div class="field"><label>Vehicle Type</label>
+        <select id="vType" onchange="applyDefaults()">
+          <option value="transit">Ford Transit 250 Cargo Van</option>
+          <option value="f150">Ford F-150 Pickup</option>
+          <option value="box">Isuzu NPR Box Truck</option>
+          <option value="semi">Freightliner Cascadia (Class 8)</option>
+        </select>
+      </div>
+      <div class="field"><label>Purchase Price ($) <span id="priceVal">38000</span></label><input type="range" id="price" min="20000" max="180000" value="38000" step="1000"></div>
+      <div class="field"><label>Current Mileage <span id="curMilesVal">45000</span></label><input type="range" id="curMiles" min="0" max="500000" value="45000" step="5000"></div>
+      <div class="field"><label>Current Vehicle Age (years) <span id="ageVal">2</span></label><input type="range" id="age" min="0" max="15" value="2"></div>
+    </div>
+    <div class="section">
+      <h3>Usage Profile</h3>
+      <div class="field"><label>Annual Mileage <span id="annMilesVal">25000</span></label><input type="range" id="annMiles" min="5000" max="80000" value="25000" step="1000"></div>
+      <div class="field"><label>Fuel Cost ($/gal) <span id="fuelVal">3.80</span></label><input type="range" id="fuel" min="2.50" max="6.00" value="3.80" step="0.10"></div>
+      <div class="field"><label>Fuel Efficiency (MPG) <span id="mpgVal">18</span></label><input type="range" id="mpg" min="4" max="35" value="18" step="0.5"></div>
+    </div>
+    <div class="section">
+      <h3>Maintenance Profile</h3>
+      <div class="field"><label>Base Annual Maint Cost ($) <span id="baseMaintVal">1500</span></label><input type="range" id="baseMaint" min="500" max="10000" value="1500" step="100"></div>
+      <div class="field"><label>Maint Cost Growth Rate (%/yr) <span id="maintGrowthVal">18</span></label><input type="range" id="maintGrowth" min="5" max="40" value="18"></div>
+      <div class="field"><label>Annual Insurance ($) <span id="insVal">3200</span></label><input type="range" id="ins" min="1000" max="15000" value="3200" step="100"></div>
+    </div>
+    <div class="section">
+      <h3>Resale Profile</h3>
+      <div class="field"><label>Year 1 Residual (% of price) <span id="res1Val">78</span></label><input type="range" id="res1" min="50" max="95" value="78"></div>
+      <div class="field"><label>Annual Depreciation Rate (%) <span id="depRateVal">15</span></label><input type="range" id="depRate" min="5" max="30" value="15"></div>
+    </div>
+  </div>
+
+  <div class="right-col">
+    <div class="recommendation" id="recommendation"></div>
+    <div class="kpi-row" id="kpis"></div>
+    <div class="chart-box"><h3>Total Cost of Ownership Per Mile Over Vehicle Lifetime</h3><div class="chart-wrap"><canvas id="tcoChart"></canvas></div></div>
+    <div class="chart-box"><h3>Cost Component Breakdown by Year</h3><div class="chart-wrap"><canvas id="stackChart"></canvas></div></div>
+    <h3 style="color:var(--purple);font-size:.9rem;margin-top:4px">Scenario Comparison</h3>
+    <div class="scenarios" id="scenarios"></div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const fmt=n=>'$'+Math.round(n).toLocaleString();
+let tcoChart,stackChart;
+
+const typeDefaults={
+  transit:{price:38000,mpg:18,baseMaint:1500,ins:3200,res1:78,depRate:15},
+  f150:{price:42000,mpg:20,baseMaint:1200,ins:2800,res1:80,depRate:14},
+  box:{price:55000,mpg:10,baseMaint:2500,ins:4200,res1:72,depRate:16},
+  semi:{price:165000,mpg:6.5,baseMaint:4500,ins:8500,res1:75,depRate:13}
+};
+
+function applyDefaults(){
+  const d=typeDefaults[$('vType').value];
+  ['price','mpg','baseMaint','ins','res1','depRate'].forEach(k=>{$(k).value=d[k];$(k+'Val').textContent=d[k]});
+  calc();
+}
+
+const sliders=['price','curMiles','age','annMiles','fuel','mpg','baseMaint','maintGrowth','ins','res1','depRate'];
+sliders.forEach(id=>{$(id).addEventListener('input',e=>{$(id+'Val').textContent=e.target.value;calc()})});
+
+function calc(){
+  const p=Object.fromEntries(sliders.map(id=>[id,+$(id).value]));
+  const years=12;
+  const yearData=[];
+  let optimalYear=1,minCPM=Infinity;
+
+  for(let y=1;y<=years;y++){
+    const totalMiles=p.annMiles*y;
+    const fuelCost=p.annMiles*(p.fuel/p.mpg);
+    const maintCost=p.baseMaint*Math.pow(1+p.maintGrowth/100,y-1);
+    const residual=p.price*(p.res1/100)*Math.pow(1-p.depRate/100,y-1);
+    const depCost=p.price-residual;
+    const cumFuel=Array.from({length:y},(_,i)=>p.annMiles*(p.fuel/p.mpg)).reduce((a,b)=>a+b,0);
+    const cumMaint=Array.from({length:y},(_,i)=>p.baseMaint*Math.pow(1+p.maintGrowth/100,i)).reduce((a,b)=>a+b,0);
+    const cumIns=p.ins*y;
+    const totalCost=depCost+cumFuel+cumMaint+cumIns;
+    const cpm=totalCost/totalMiles;
+
+    yearData.push({year:y,totalMiles,fuelCost,maintCost,residual,depCost,cumFuel,cumMaint,cumIns,totalCost,cpm});
+    if(cpm<minCPM){minCPM=cpm;optimalYear=y;}
+  }
+
+  const optData=yearData[optimalYear-1];
+  const optMiles=optData.totalMiles+p.curMiles;
+
+  $('recommendation').innerHTML=`
+    <h2>Optimal Replacement Point</h2>
+    <div class="big">Year ${optimalYear} &mdash; ${(optMiles/1000).toFixed(0)}k miles</div>
+    <div class="sub">Minimum TCO: ${(minCPM).toFixed(3)}/mile &bull; Total cost at replacement: ${fmt(optData.totalCost)} &bull; Residual value: ${fmt(optData.residual)}</div>
+  `;
+
+  $('kpis').innerHTML=[
+    {l:'Current TCO/Mile',v:'$'+(yearData[Math.min(+p.age,years)-1]||yearData[0]).cpm.toFixed(3),c:'color:var(--blue)'},
+    {l:'Optimal TCO/Mile',v:'$'+minCPM.toFixed(3),c:'color:var(--accent)'},
+    {l:'Residual at Optimal',v:fmt(optData.residual),c:'color:var(--orange)'},
+    {l:'Maint Cost at Optimal ($/yr)',v:fmt(optData.maintCost),c:'color:var(--red)'}
+  ].map(k=>`<div class="kpi"><div class="l">${k.l}</div><div class="v" style="${k.c}">${k.v}</div></div>`).join('');
+
+  // TCO per mile chart
+  if(tcoChart)tcoChart.destroy();
+  tcoChart=new Chart($('tcoChart'),{type:'line',data:{
+    labels:yearData.map(d=>'Year '+d.year),
+    datasets:[{
+      label:'TCO per Mile',data:yearData.map(d=>d.cpm),
+      borderColor:'#3b82f6',backgroundColor:'#3b82f622',fill:true,tension:.3,pointRadius:yearData.map((d,i)=>i+1===optimalYear?8:4),
+      pointBackgroundColor:yearData.map((d,i)=>i+1===optimalYear?'#22c55e':'#3b82f6'),
+      pointBorderColor:yearData.map((d,i)=>i+1===optimalYear?'#22c55e':'#3b82f6')
+    }]
+  },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},annotation:{}},scales:{y:{title:{display:true,text:'Cost per Mile ($)',color:'#94a3b8'},ticks:{color:'#94a3b8',callback:v=>'$'+v.toFixed(2)},grid:{color:'#334155'}},x:{ticks:{color:'#94a3b8'},grid:{display:false}}}}});
+
+  // Stacked cost chart
+  if(stackChart)stackChart.destroy();
+  stackChart=new Chart($('stackChart'),{type:'bar',data:{
+    labels:yearData.map(d=>'Year '+d.year),
+    datasets:[
+      {label:'Fuel',data:yearData.map(d=>d.fuelCost),backgroundColor:'#ef4444',borderRadius:2},
+      {label:'Maintenance',data:yearData.map(d=>d.maintCost),backgroundColor:'#f59e0b',borderRadius:2},
+      {label:'Insurance',data:yearData.map(d=>p.ins),backgroundColor:'#8b5cf6',borderRadius:2},
+      {label:'Depreciation',data:yearData.map((d,i)=>{const prev=i>0?yearData[i-1].residual:p.price;return prev-d.residual}),backgroundColor:'#3b82f6',borderRadius:2}
+    ]
+  },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8'}}},scales:{y:{stacked:true,ticks:{color:'#94a3b8',callback:v=>'$'+(v/1000).toFixed(0)+'k'},grid:{color:'#334155'}},x:{stacked:true,ticks:{color:'#94a3b8'},grid:{display:false}}}}});
+
+  // Scenarios
+  const scenarios=[
+    {name:'Light Use',miles:15000,label:'15k mi/yr'},
+    {name:'Medium Use',miles:25000,label:'25k mi/yr'},
+    {name:'Heavy Use',miles:40000,label:'40k mi/yr'}
+  ];
+  $('scenarios').innerHTML=scenarios.map(s=>{
+    let best=1,bestCPM=Infinity;
+    for(let y=1;y<=10;y++){
+      const tm=s.miles*y;
+      const cf=Array.from({length:y},()=>s.miles*(p.fuel/p.mpg)).reduce((a,b)=>a+b,0);
+      const cm=Array.from({length:y},(_,i)=>p.baseMaint*Math.pow(1+p.maintGrowth/100,i)).reduce((a,b)=>a+b,0);
+      const res=p.price*(p.res1/100)*Math.pow(1-p.depRate/100,y-1);
+      const tc=(p.price-res)+cf+cm+p.ins*y;
+      const cpm=tc/tm;
+      if(cpm<bestCPM){bestCPM=cpm;best=y;}
+    }
+    const bestMiles=best*s.miles;
+    const res=p.price*(p.res1/100)*Math.pow(1-p.depRate/100,best-1);
+    return`<div class="scenario"><h4>${s.name} (${s.label})</h4>
+      <div class="row"><span>Replace at Year</span><span>${best}</span></div>
+      <div class="row"><span>Replace at Mileage</span><span>${(bestMiles/1000).toFixed(0)}k</span></div>
+      <div class="row"><span>Min Cost/Mile</span><span>$${bestCPM.toFixed(3)}</span></div>
+      <div class="row"><span>Residual Value</span><span>${fmt(res)}</span></div>
+    </div>`;
+  }).join('');
+}
+
+calc();
+</script>
+</body>
+</html>

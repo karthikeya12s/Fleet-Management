@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marketplace Economics Simulator — FleetBay</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#0f172a;--surface:#1e293b;--surface2:#334155;--border:#475569;--text:#e2e8f0;--text2:#94a3b8;--accent:#ec4899;--green:#22c55e;--red:#ef4444;--orange:#f59e0b;--blue:#3b82f6;--purple:#8b5cf6;--radius:10px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;justify-content:space-between}
+.header h1{font-size:1.3rem;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.container{max-width:1400px;margin:0 auto;padding:20px 24px;display:grid;grid-template-columns:360px 1fr;gap:24px}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.panel h2{font-size:.95rem;font-weight:600;margin-bottom:14px;color:var(--accent)}
+.section{margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+.section:last-child{border-bottom:none}
+.section h3{font-size:.78rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.field{margin-bottom:10px}
+.field label{display:flex;justify-content:space-between;font-size:.78rem;color:var(--text2);margin-bottom:3px}
+.field label span{color:var(--accent);font-weight:600;font-size:.85rem}
+.field input[type=range]{width:100%;accent-color:var(--accent)}
+.right-col{display:flex;flex-direction:column;gap:20px}
+.health-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.health{background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center;transition:border-color .3s}
+.health.green{border-color:var(--green)}.health.yellow{border-color:var(--orange)}.health.red{border-color:var(--red)}
+.health .v{font-size:1.6rem;font-weight:800;margin:4px 0}
+.health .l{font-size:.72rem;color:var(--text2);text-transform:uppercase}
+.health .status{font-size:.7rem;font-weight:700;margin-top:4px;padding:2px 8px;border-radius:10px;display:inline-block}
+.health .status.g{background:rgba(34,197,94,.2);color:var(--green)}
+.health .status.y{background:rgba(245,158,11,.2);color:var(--orange)}
+.health .status.r{background:rgba(239,68,68,.2);color:var(--red)}
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center}
+.kpi .v{font-size:1.3rem;font-weight:800;margin:2px 0}
+.kpi .l{font-size:.7rem;color:var(--text2)}
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.chart-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.chart-box h3{font-size:.85rem;color:var(--text2);margin-bottom:10px}
+.chart-wrap{position:relative;height:250px}
+.metros{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.metros h3{font-size:.9rem;margin-bottom:12px;color:var(--purple)}
+.metro-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
+.metro-card{background:var(--surface2);border-radius:8px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;font-size:.82rem}
+.metro-card .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.metro-card .dot.g{background:var(--green)}.metro-card .dot.y{background:var(--orange)}.metro-card .dot.r{background:var(--red)}
+.btn{padding:8px 16px;border-radius:6px;font-size:.82rem;font-weight:600;cursor:pointer;border:none;background:var(--accent);color:#fff}
+@media(max-width:1000px){.container{grid-template-columns:1fr}.health-grid{grid-template-columns:repeat(2,1fr)}.kpi-row{grid-template-columns:repeat(2,1fr)}.charts{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Marketplace Economics Simulator</h1>
+  <span style="font-size:.75rem;color:var(--text2)">Exercise 1.1 &mdash; FleetBay Marketplace</span>
+</div>
+<div class="container">
+  <div class="panel">
+    <h2>Marketplace Parameters</h2>
+    <div class="section">
+      <h3>Demand Side (Fleet Operators)</h3>
+      <div class="field"><label>Active Fleets <span id="fleetsVal">150</span></label><input type="range" id="fleets" min="10" max="5000" value="150" step="10"></div>
+      <div class="field"><label>Avg Vehicles / Fleet <span id="avgVehVal">100</span></label><input type="range" id="avgVeh" min="20" max="500" value="100" step="10"></div>
+      <div class="field"><label>Service Requests / Fleet / Month <span id="reqVal">8</span></label><input type="range" id="req" min="1" max="30" value="8"></div>
+      <div class="field"><label>Avg Transaction Value ($) <span id="atvVal">650</span></label><input type="range" id="atv" min="100" max="3000" value="650" step="50"></div>
+    </div>
+    <div class="section">
+      <h3>Supply Side (Vendors)</h3>
+      <div class="field"><label>Active Vendors <span id="vendorsVal">500</span></label><input type="range" id="vendors" min="10" max="10000" value="500" step="50"></div>
+      <div class="field"><label>Vendor Response Rate (%) <span id="respRateVal">72</span></label><input type="range" id="respRate" min="10" max="100" value="72"></div>
+      <div class="field"><label>Avg Vendor Capacity (jobs/week) <span id="capVal">12</span></label><input type="range" id="cap" min="2" max="40" value="12"></div>
+    </div>
+    <div class="section">
+      <h3>Platform Economics</h3>
+      <div class="field"><label>Take Rate (%) <span id="takeVal">8.5</span></label><input type="range" id="take" min="3" max="15" value="8.5" step="0.5"></div>
+      <div class="field"><label>Paid Vendor Subscriptions <span id="paidSubsVal">100</span></label><input type="range" id="paidSubs" min="0" max="2000" value="100" step="10"></div>
+      <div class="field"><label>Vendor Sub Price ($/mo) <span id="subPriceVal">99</span></label><input type="range" id="subPrice" min="49" max="299" value="99" step="10"></div>
+      <div class="field"><label>Monthly Fleet Growth (%) <span id="growthVal">10</span></label><input type="range" id="growth" min="0" max="25" value="10"></div>
+    </div>
+    <div class="section">
+      <h3>Metro Expansion</h3>
+      <div class="field"><label>Active Metros <span id="metrosVal">3</span></label><input type="range" id="metros" min="1" max="30" value="3"></div>
+    </div>
+  </div>
+
+  <div class="right-col">
+    <div class="health-grid" id="healthGrid"></div>
+    <div class="kpi-row" id="kpis"></div>
+    <div class="charts">
+      <div class="chart-box"><h3>Revenue Breakdown</h3><div class="chart-wrap"><canvas id="revChart"></canvas></div></div>
+      <div class="chart-box"><h3>12-Month GMV Projection</h3><div class="chart-wrap"><canvas id="projChart"></canvas></div></div>
+    </div>
+    <div class="metros"><h3>Metro Health Status</h3><div class="metro-grid" id="metroGrid"></div></div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const fmt=n=>n>=1e6?'$'+(n/1e6).toFixed(1)+'M':n>=1e3?'$'+(n/1e3).toFixed(0)+'k':'$'+Math.round(n);
+let revChart,projChart;
+
+const sliders=['fleets','avgVeh','req','atv','vendors','respRate','cap','take','paidSubs','subPrice','growth','metros'];
+sliders.forEach(id=>{
+  $(id).addEventListener('input',e=>{$(id+'Val').textContent=e.target.value;calc()});
+});
+
+const metroNames=['Dallas-Fort Worth','Houston','Atlanta','Chicago','Phoenix','Charlotte','Nashville','Denver','Minneapolis','Tampa','Orlando','San Antonio','Columbus','Indianapolis','Jacksonville','Memphis','Louisville','Oklahoma City','Las Vegas','Raleigh','Cincinnati','Kansas City','Austin','Milwaukee','Sacramento','Pittsburgh','Baltimore','St. Louis','Richmond','Salt Lake City'];
+
+function calc(){
+  const f=Object.fromEntries(sliders.map(id=>[id,+$(id).value]));
+  const monthlyRequests=f.fleets*f.req;
+  const monthlyGMV=monthlyRequests*f.atv;
+  const annualGMV=monthlyGMV*12;
+  const txRev=annualGMV*(f.take/100);
+  const subRev=f.paidSubs*f.subPrice*12;
+  const totalRev=txRev+subRev;
+
+  // Liquidity metrics
+  const totalWeeklyVendorCap=f.vendors*f.cap;
+  const weeklyRequests=monthlyRequests/4.33;
+  const fillRate=Math.min(100,Math.round((f.respRate/100)*(totalWeeklyVendorCap/Math.max(weeklyRequests,1))*100));
+  const requestsPerVendor=monthlyRequests/Math.max(f.vendors,1);
+  const supplyDemandRatio=(totalWeeklyVendorCap/Math.max(weeklyRequests,1));
+
+  // Health indicators
+  const fillHealth=fillRate>=80?'green':fillRate>=60?'yellow':'red';
+  const respHealth=f.respRate>=70?'green':f.respRate>=50?'yellow':'red';
+  const reqPerVendorHealth=requestsPerVendor>=4?'green':requestsPerVendor>=2?'yellow':'red';
+
+  const healthStatus=(cl)=>cl==='green'?{t:'Healthy',c:'g'}:cl==='yellow'?{t:'At Risk',c:'y'}:{t:'Critical',c:'r'};
+
+  $('healthGrid').innerHTML=[
+    {l:'Fill Rate',v:fillRate+'%',h:fillHealth},
+    {l:'Vendor Response Rate',v:f.respRate+'%',h:respHealth},
+    {l:'Requests / Vendor / Mo',v:requestsPerVendor.toFixed(1),h:reqPerVendorHealth}
+  ].map(m=>{const s=healthStatus(m.h);return`<div class="health ${m.h}"><div class="l">${m.l}</div><div class="v">${m.v}</div><div class="status ${s.c}">${s.t}</div></div>`}).join('');
+
+  $('kpis').innerHTML=[
+    {l:'Monthly GMV',v:fmt(monthlyGMV),c:'color:var(--accent)'},
+    {l:'Annual GMV',v:fmt(annualGMV),c:'color:var(--blue)'},
+    {l:'Net Revenue (Annual)',v:fmt(totalRev),c:'color:var(--green)'},
+    {l:'Supply:Demand Ratio',v:supplyDemandRatio.toFixed(2)+'x',c:supplyDemandRatio>1?'color:var(--green)':'color:var(--red)'}
+  ].map(k=>`<div class="kpi"><div class="l">${k.l}</div><div class="v" style="${k.c}">${k.v}</div></div>`).join('');
+
+  // Revenue chart
+  if(revChart)revChart.destroy();
+  revChart=new Chart($('revChart'),{type:'doughnut',data:{labels:['Transaction Fees','Vendor Subscriptions'],datasets:[{data:[txRev,subRev],backgroundColor:['#ec4899','#3b82f6'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#94a3b8'}}}}});
+
+  // 12-month projection
+  const months=[];const gmvData=[];const revData=[];
+  let fl=f.fleets;
+  for(let m=1;m<=12;m++){
+    months.push('M'+m);
+    const mg=fl*f.req*f.atv;
+    gmvData.push(mg);
+    revData.push(mg*(f.take/100)+f.paidSubs*f.subPrice);
+    fl=Math.round(fl*(1+f.growth/100));
+  }
+  if(projChart)projChart.destroy();
+  projChart=new Chart($('projChart'),{type:'line',data:{labels:months,datasets:[
+    {label:'Monthly GMV',data:gmvData,borderColor:'#ec4899',backgroundColor:'#ec489922',fill:true,tension:.3},
+    {label:'Net Revenue',data:revData,borderColor:'#3b82f6',backgroundColor:'#3b82f622',fill:true,tension:.3}
+  ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#94a3b8'}}},scales:{y:{ticks:{color:'#94a3b8',callback:v=>v>=1e6?'$'+(v/1e6).toFixed(1)+'M':'$'+(v/1e3).toFixed(0)+'k'},grid:{color:'#334155'}},x:{ticks:{color:'#94a3b8'},grid:{display:false}}}}});
+
+  // Metro grid
+  const metroCount=f.metros;
+  const vendorsPerMetro=Math.round(f.vendors/metroCount);
+  const fleetsPerMetro=Math.round(f.fleets/metroCount);
+  $('metroGrid').innerHTML=metroNames.slice(0,metroCount).map((name,i)=>{
+    const localVendors=Math.round(vendorsPerMetro*(0.6+Math.random()*0.8));
+    const localFleets=Math.round(fleetsPerMetro*(0.5+Math.random()*1.0));
+    const localFill=Math.min(100,Math.round(fillRate*(0.7+Math.random()*0.6)));
+    const dot=localFill>=75?'g':localFill>=55?'y':'r';
+    return`<div class="metro-card"><span>${name}</span><span class="dot ${dot}" title="Fill: ${localFill}%"></span></div>`;
+  }).join('');
+}
+
+calc();
+</script>
+</body>
+</html>
