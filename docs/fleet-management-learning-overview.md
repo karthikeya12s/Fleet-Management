@@ -6,20 +6,6 @@
 
 ---
 
-## Table of Contents
-
-- [Phase 1: Foundation (2-3 weeks)](#phase-1-foundation-2-3-weeks)
-- [Phase 2: Technical Stack Deep Dive (3-4 weeks)](#phase-2-technical-stack-deep-dive-3-4-weeks)
-- [Phase 3: Domain Expertise (3-4 weeks)](#phase-3-domain-expertise-3-4-weeks)
-- [Phase 4: Advanced Topics (3-4 weeks)](#phase-4-advanced-topics-3-4-weeks)
-- [Phase 5: Product & Business Strategy (2-3 weeks)](#phase-5-product--business-strategy-2-3-weeks)
-- [Phase 6: Hands-On Application (Ongoing)](#phase-6-hands-on-application-ongoing)
-- [Learning Resources](#recommended-learning-resources)
-- [Success Metrics](#success-metrics-for-your-learning-journey)
-- [Application to Your Ventures](#application-to-your-current-ventures)
-
----
-
 ## Fleet Management Overview
 
 Fleet management is the systematic administration of a company's vehicle assets to maximize efficiency, reduce costs, ensure safety, and optimize utilization.
