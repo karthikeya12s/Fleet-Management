@@ -1,7 +1,6 @@
 # Fleet Management Roadmap
 
 ## Table of Contents
-
 - [Phase 1: Foundation (2-3 weeks)](#phase-1-foundation-2-3-weeks)
 - [Phase 2: Technical Stack Deep Dive (3-4 weeks)](#phase-2-technical-stack-deep-dive-3-4-weeks)
 - [Phase 3: Domain Expertise (3-4 weeks)](#phase-3-domain-expertise-3-4-weeks)
